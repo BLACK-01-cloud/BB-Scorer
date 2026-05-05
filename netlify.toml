@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# The Next.js runtime turns your build output into Netlify Functions/Edge
+# Functions for SSR + dynamic routes (including /live/match/[matchId] and
+# /scorer/match/[matchId]). Without it Netlify would only serve the static
+# bundle and every dynamic page would 404.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

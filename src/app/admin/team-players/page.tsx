@@ -14,7 +14,7 @@ export default async function TeamPlayersPage() {
       .order("start_date", { ascending: false }),
     supabase
       .from("teams")
-      .select("id, name, short_name")
+      .select("id, name, short_name, logo_url")
       .order("name", { ascending: true }),
     supabase
       .from("players")

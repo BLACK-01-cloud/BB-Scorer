@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronsUpDown, Search } from "lucide-react";
 import type { TeamPlayer } from "@/lib/types/database";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +29,7 @@ import {
 import { useToast } from "@/components/ui/toast";
 
 type SeasonOpt = { id: string; name: string; is_active: boolean; start_date: string };
-type TeamOpt = { id: string; name: string; short_name: string };
+type TeamOpt = { id: string; name: string; short_name: string; logo_url?: string | null };
 type PlayerOpt = { id: string; full_name: string; display_name: string | null };
 
 type Row = TeamPlayer & {
@@ -81,6 +83,25 @@ export default function TeamPlayersManager({
     () => Object.fromEntries(teams.map((t) => [t.id, t])),
     [teams],
   );
+
+  // Players already actively assigned in the selected season — hidden from the
+  // assign modal so we don't violate the "one active per (season, player)"
+  // unique index. When editing, allow the row's own player to stay visible so
+  // the dropdown still shows the current selection.
+  const assignedPlayerIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of rows) {
+      if (r.active) s.add(r.player_id);
+    }
+    return s;
+  }, [rows]);
+
+  const availablePlayers = useMemo(() => {
+    return players.filter(
+      (p) =>
+        !assignedPlayerIds.has(p.id) || (editing && editing.player_id === p.id),
+    );
+  }, [players, assignedPlayerIds, editing]);
 
   useEffect(() => {
     if (!seasonId) {
@@ -305,7 +326,21 @@ export default function TeamPlayersManager({
                 {visible.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">
-                      {r.team?.name ?? "—"}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {r.team?.logo_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={r.team.logo_url}
+                            alt=""
+                            className="h-7 w-7 rounded object-cover border shrink-0"
+                          />
+                        ) : (
+                          <div className="h-7 w-7 rounded bg-muted/40 border grid place-items-center text-[9px] font-bold uppercase tracking-wider text-muted-foreground shrink-0">
+                            {r.team?.short_name?.slice(0, 3) ?? "—"}
+                          </div>
+                        )}
+                        <span className="truncate">{r.team?.name ?? "—"}</span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       {r.player?.display_name || r.player?.full_name || "—"}
@@ -356,33 +391,38 @@ export default function TeamPlayersManager({
           <div className="space-y-3">
             <div className="space-y-2">
               <Label>Team</Label>
-              <Select
+              <SearchableSelect
                 value={form.team_id}
-                onChange={(e) => setForm({ ...form, team_id: e.target.value })}
-              >
-                <option value="">— select —</option>
-                {teams.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </Select>
+                onChange={(id) => setForm({ ...form, team_id: id })}
+                options={teams.map((t) => ({
+                  id: t.id,
+                  label: t.name,
+                  hint: t.short_name,
+                  searchable: `${t.name} ${t.short_name}`,
+                }))}
+                placeholder="— select team —"
+                searchPlaceholder="Search team name or short code…"
+              />
             </div>
             <div className="space-y-2">
               <Label>Player</Label>
-              <Select
+              <SearchableSelect
                 value={form.player_id}
-                onChange={(e) =>
-                  setForm({ ...form, player_id: e.target.value })
-                }
-              >
-                <option value="">— select —</option>
-                {players.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.display_name || p.full_name}
-                  </option>
-                ))}
-              </Select>
+                onChange={(id) => setForm({ ...form, player_id: id })}
+                options={availablePlayers.map((p) => ({
+                  id: p.id,
+                  label: p.display_name || p.full_name,
+                  hint: p.display_name && p.display_name !== p.full_name ? p.full_name : undefined,
+                  searchable: `${p.full_name} ${p.display_name ?? ""}`,
+                }))}
+                placeholder="— select player —"
+                searchPlaceholder="Search player name…"
+              />
+              {availablePlayers.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Every player is already actively assigned in this season.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Jersey #</Label>
@@ -415,6 +455,144 @@ export default function TeamPlayersManager({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+type SearchOption = {
+  id: string;
+  label: string;
+  hint?: string;
+  searchable: string;
+};
+
+function SearchableSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  searchPlaceholder,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  options: SearchOption[];
+  placeholder: string;
+  searchPlaceholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const selected = useMemo(
+    () => options.find((o) => o.id === value) ?? null,
+    [options, value],
+  );
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) => o.searchable.toLowerCase().includes(q));
+  }, [options, query]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e: MouseEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      setQuery("");
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [open]);
+
+  function pick(id: string) {
+    onChange(id);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={cn(
+          "w-full flex items-center justify-between gap-2 h-10 rounded-md border border-input bg-background px-3 text-sm text-left",
+          "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          !selected && "text-muted-foreground",
+        )}
+      >
+        <span className="truncate">
+          {selected ? selected.label : placeholder}
+        </span>
+        <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-60" />
+      </button>
+
+      {open && (
+        <div className="absolute z-30 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md">
+          <div className="p-2 border-b">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={searchPlaceholder}
+                className="h-8 pl-7 text-sm"
+              />
+            </div>
+          </div>
+          <ul role="listbox" className="max-h-60 overflow-auto py-1">
+            {options.length === 0 ? (
+              <li className="px-3 py-2 text-xs text-muted-foreground italic">
+                No options available
+              </li>
+            ) : filtered.length === 0 ? (
+              <li className="px-3 py-2 text-xs text-muted-foreground italic">
+                No matches for &quot;{query}&quot;.
+              </li>
+            ) : (
+              filtered.map((o) => {
+                const isSelected = o.id === value;
+                return (
+                  <li key={o.id} role="option" aria-selected={isSelected}>
+                    <button
+                      type="button"
+                      onClick={() => pick(o.id)}
+                      className={cn(
+                        "w-full flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-left",
+                        "hover:bg-accent hover:text-accent-foreground",
+                        isSelected && "bg-accent/60",
+                      )}
+                    >
+                      <span className="truncate">{o.label}</span>
+                      {o.hint && (
+                        <span className="shrink-0 text-[11px] uppercase tracking-wider text-muted-foreground">
+                          {o.hint}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })
+            )}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

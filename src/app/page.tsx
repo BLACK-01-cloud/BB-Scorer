@@ -32,8 +32,10 @@ export default async function HomePage() {
 
   return (
     <main className="relative min-h-screen overflow-x-hidden">
-      {/* Subtle background texture */}
-      <div className="fixed inset-0 z-0 opacity-15 grayscale pointer-events-none">
+      {/* Background texture
+          - Light theme: vivid arena image (full color, contrast boost)
+          - Dark theme:  muted cinematic (lower opacity, slight color, brightness lift) */}
+      <div className="fixed inset-0 z-0 pointer-events-none opacity-75 saturate-125 contrast-100 dark:opacity-60 dark:saturate-110 dark:brightness-125 dark:contrast-100">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/arena-bg.jpg"
@@ -41,7 +43,7 @@ export default async function HomePage() {
           aria-hidden
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/10 to-background/40 dark:from-background/60 dark:via-background/15 dark:to-background/60" />
       </div>
 
       <div className="relative z-10">
@@ -78,25 +80,19 @@ export default async function HomePage() {
                     const home = (m as any).home_team;
                     const away = (m as any).away_team;
                     return (
-                      <Link
+                      <MatchCard
                         key={m.id}
                         href={`/live/match/${m.id}`}
-                        className="block group"
-                      >
-                        <div className="arena-glass rounded-xl p-4 flex items-center justify-between gap-4 transition-colors hover:border-primary/40">
-                          <div className="min-w-0">
-                            <div className="label-caps text-primary mb-1">
-                              Quarter {m.current_period}
-                            </div>
-                            <div className="font-display font-semibold text-lg truncate">
-                              {home?.name} vs {away?.name}
-                            </div>
-                          </div>
-                          <div className="font-display text-3xl font-bold text-primary score-glow scoreboard-digit shrink-0">
-                            {m.home_score} - {m.away_score}
-                          </div>
-                        </div>
-                      </Link>
+                        eyebrow={`Quarter ${m.current_period}`}
+                        eyebrowAccent="primary"
+                        homeName={home?.name}
+                        homeShort={home?.short_name}
+                        awayName={away?.name}
+                        awayShort={away?.short_name}
+                        center={`${m.home_score} - ${m.away_score}`}
+                        centerStyle="score"
+                        rightBadge={<Badge variant="live">LIVE</Badge>}
+                      />
                     );
                   })}
                 </div>
@@ -112,20 +108,23 @@ export default async function HomePage() {
                     const home = (m as any).home_team;
                     const away = (m as any).away_team;
                     return (
-                      <Link
+                      <MatchCard
                         key={m.id}
                         href={`/live/match/${m.id}`}
-                        className="block"
-                      >
-                        <div className="arena-glass rounded-xl p-4 transition-colors hover:border-primary/40">
-                          <div className="label-caps text-muted-foreground mb-1">
-                            {formatDateTime(m.match_date)}
-                          </div>
-                          <div className="font-display font-semibold text-lg truncate">
-                            {home?.name} vs {away?.name}
-                          </div>
-                        </div>
-                      </Link>
+                        eyebrow={formatDateTime(m.match_date)}
+                        eyebrowAccent="muted"
+                        homeName={home?.name}
+                        homeShort={home?.short_name}
+                        awayName={away?.name}
+                        awayShort={away?.short_name}
+                        center="vs"
+                        centerStyle="vs"
+                        rightBadge={
+                          <Badge variant="outline" className="font-mono text-[10px]">
+                            SCHEDULED
+                          </Badge>
+                        }
+                      />
                     );
                   })}
                 </div>
@@ -166,5 +165,82 @@ function EmptyTile({ message }: { message: string }) {
     <div className="arena-glass rounded-xl py-10 text-center text-sm text-muted-foreground">
       {message}
     </div>
+  );
+}
+
+function MatchCard({
+  href,
+  eyebrow,
+  eyebrowAccent,
+  homeName,
+  homeShort,
+  awayName,
+  awayShort,
+  center,
+  centerStyle,
+  rightBadge,
+}: {
+  href: string;
+  eyebrow: string;
+  eyebrowAccent: "primary" | "muted";
+  homeName?: string;
+  homeShort?: string;
+  awayName?: string;
+  awayShort?: string;
+  center: string;
+  centerStyle: "score" | "vs";
+  rightBadge?: React.ReactNode;
+}) {
+  return (
+    <Link href={href} className="block group">
+      <div className="arena-glass rounded-xl p-4 h-[112px] flex flex-col justify-between transition-colors hover:border-primary/50">
+        {/* Top row — eyebrow + status badge */}
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className={cn(
+              "label-caps truncate",
+              eyebrowAccent === "primary" ? "text-primary" : "text-muted-foreground",
+            )}
+          >
+            {eyebrow}
+          </span>
+          {rightBadge}
+        </div>
+
+        {/* Bottom row — home / center / away in equal columns */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <div className="min-w-0 text-left">
+            <div className="font-display font-bold text-base sm:text-lg truncate">
+              {homeName ?? "—"}
+            </div>
+            {homeShort && (
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                {homeShort}
+              </div>
+            )}
+          </div>
+          <div
+            className={cn(
+              "font-display font-bold scoreboard-digit shrink-0 px-2",
+              centerStyle === "score"
+                ? "text-2xl sm:text-3xl text-primary score-glow"
+                : "text-sm uppercase tracking-widest text-muted-foreground/70",
+            )}
+          >
+            {center}
+          </div>
+          <div className="min-w-0 text-right">
+            <div className="font-display font-bold text-base sm:text-lg truncate">
+              {awayName ?? "—"}
+            </div>
+            {awayShort && (
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                {awayShort}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </Link>
   );
 }

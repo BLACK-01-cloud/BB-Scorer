@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
   Match,
@@ -105,6 +105,13 @@ export default function MatchesManager({
   const [editing, setEditing] = useState<Row | null>(null);
   const [form, setForm] = useState<FormState>(() => emptyForm(seasons));
   const [saving, setSaving] = useState(false);
+
+  // When the URL `?status=` changes, the server re-fetches and passes a new
+  // `initial` prop. `useState(initial)` only consumes `initial` on first
+  // mount, so without this sync the filter chips wouldn't update the table.
+  useEffect(() => {
+    setMatches(initial);
+  }, [initial]);
 
   function openCreate() {
     setEditing(null);

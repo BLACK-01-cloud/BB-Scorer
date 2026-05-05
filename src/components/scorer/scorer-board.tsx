@@ -321,7 +321,13 @@ export default function ScorerBoard({
   }
   async function setShotClock(value: number) {
     localShotRef.current = value;
-    await patchMatch({ shot_clock_seconds: value, shot_clock_running: false });
+    // If the match timer is running, the shot clock should keep running too —
+    // a 24/14 reset is mid-play and the new shot clock starts ticking immediately.
+    // If the timer is paused, leave the shot clock paused as well.
+    await patchMatch({
+      shot_clock_seconds: value,
+      shot_clock_running: match.timer_running,
+    });
   }
   async function setStatus(s: MatchStatus) {
     const patch: Partial<Match> = { match_status: s };

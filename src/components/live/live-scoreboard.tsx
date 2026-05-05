@@ -189,7 +189,7 @@ export default function LiveScoreboard({
               <span className="font-display text-[11px] font-bold uppercase tracking-[0.3em] text-primary/90 mb-2">
                 Quarter {match.current_period}
               </span>
-              <div className="font-display font-bold text-white text-5xl sm:text-6xl font-mono tracking-widest scoreboard-digit">
+              <div className="font-display font-bold text-foreground text-5xl sm:text-6xl font-mono tracking-widest scoreboard-digit">
                 {formatClock(displayTimer)}
               </div>
               <div className="mt-3 flex flex-col items-center">

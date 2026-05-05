@@ -36,13 +36,13 @@ export default async function LoginPage() {
               />
             ) : (
               <span
-                className="text-2xl text-[#ff6b00] leading-none"
+                className="text-2xl text-[#b86432] leading-none"
                 aria-hidden
               >
                 {FALLBACK_ICON}
               </span>
             )}
-            <span className="font-display tracking-tighter uppercase italic font-black text-[#ff6b00] text-xl">
+            <span className="font-display tracking-tighter uppercase italic font-black text-[#b86432] text-xl">
               {siteName}
             </span>
           </div>

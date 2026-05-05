@@ -41,8 +41,10 @@ export default async function PublicLivePage({
 
   return (
     <main className="relative min-h-screen overflow-x-hidden">
-      {/* Fixed cinematic arena texture */}
-      <div className="fixed inset-0 z-0 opacity-25 grayscale pointer-events-none">
+      {/* Fixed cinematic arena texture
+          - Light theme: vivid (full color, higher opacity, slight saturation boost)
+          - Dark theme:  muted cinematic (grayscale + low opacity) */}
+      <div className="fixed inset-0 z-0 pointer-events-none opacity-100 saturate-150 contrast-110 dark:opacity-60 dark:saturate-110 dark:brightness-125 dark:contrast-100">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/arena-bg.jpg"
@@ -50,7 +52,8 @@ export default async function PublicLivePage({
           aria-hidden
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+        {/* Soft top + bottom edge fade so cards stay readable in both themes. */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-transparent to-background/30 dark:from-background/60 dark:via-background/15 dark:to-background/60" />
       </div>
 
       <div className="relative z-10">

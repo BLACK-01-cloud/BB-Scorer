@@ -11,19 +11,19 @@
     --card-foreground: 19 60% 8%;
     --popover: 0 0% 100%;
     --popover-foreground: 19 60% 8%;
-    --primary: 25 100% 50%;
+    --primary: 25 56% 46%;
     --primary-foreground: 19 100% 10%;
     --secondary: 22 30% 94%;
     --secondary-foreground: 19 60% 12%;
     --muted: 22 30% 94%;
     --muted-foreground: 19 18% 42%;
     --accent: 22 50% 95%;
-    --accent-foreground: 25 100% 35%;
+    --accent-foreground: 25 56% 32%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 22 30% 88%;
     --input: 22 30% 88%;
-    --ring: 25 100% 50%;
+    --ring: 25 56% 46%;
     --radius: 0.75rem;
 
     /* Stitch surface scale (mapped to literal values for arena-glass etc.) */
@@ -35,8 +35,8 @@
     --stitch-on-surface-variant: 22 51% 79%;
     --stitch-outline: 19 24% 57%;
     --stitch-outline-variant: 16 25% 28%;
-    --stitch-primary-container: 25 100% 50%;
-    --stitch-primary: 22 100% 79%;
+    --stitch-primary-container: 25 56% 46%;
+    --stitch-primary: 22 60% 70%;
     --stitch-on-primary-container: 25 100% 17%;
     --stitch-on-primary-fixed: 19 100% 10%;
   }
@@ -49,7 +49,7 @@
     --card-foreground: 22 70% 90%;
     --popover: 19 33% 13%;
     --popover-foreground: 22 70% 90%;
-    --primary: 25 100% 50%;           /* #ff6b00 primary-container */
+    --primary: 25 56% 46%;            /* #b86432 muted copper accent */
     --primary-foreground: 19 100% 10%;/* #351000 on-primary-fixed */
     --secondary: 19 21% 21%;          /* #41312a surface-container-highest */
     --secondary-foreground: 22 70% 90%;
@@ -61,7 +61,7 @@
     --destructive-foreground: 0 100% 21%;
     --border: 16 25% 28%;             /* #5a4136 outline-variant */
     --input: 16 25% 28%;
-    --ring: 25 100% 50%;
+    --ring: 25 56% 46%;
   }
 }
 
@@ -107,10 +107,19 @@
 }
 
 .arena-glass {
+  /* Light mode: opaque-ish white with very light blur so the colourful
+     background reads through but cards stay legible. */
+  background: hsl(var(--card) / 0.85);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border: 1px solid hsl(var(--border) / 0.6);
+}
+
+.dark .arena-glass {
+  /* Dark mode: original cinematic glass with stronger blur. */
   background: hsl(var(--card) / 0.7);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
-  border: 1px solid hsl(var(--border) / 0.6);
 }
 
 .label-caps {

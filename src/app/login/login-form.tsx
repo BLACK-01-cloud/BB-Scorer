@@ -113,7 +113,7 @@ export default function LoginForm({
     >
       {/* Header */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#ff6b00]/15 border border-[#ff6b00]/30 mb-5 overflow-hidden">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#b86432]/15 border border-[#b86432]/30 mb-5 overflow-hidden">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -122,7 +122,7 @@ export default function LoginForm({
               className="h-full w-full object-contain p-2"
             />
           ) : (
-            <span className="text-5xl text-[#ff6b00] leading-none" aria-hidden>
+            <span className="text-5xl text-[#b86432] leading-none" aria-hidden>
               {FALLBACK_ICON}
             </span>
           )}
@@ -146,7 +146,7 @@ export default function LoginForm({
           </label>
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <UserIcon className="h-5 w-5 text-[#a98a7d] group-focus-within:text-[#ff6b00] transition-colors" />
+              <UserIcon className="h-5 w-5 text-[#a98a7d] group-focus-within:text-[#b86432] transition-colors" />
             </div>
             <input
               id="username"
@@ -162,7 +162,7 @@ export default function LoginForm({
                 w-full h-12 rounded-lg pl-12 pr-4
                 bg-[#170b06] border border-[#5a4136]/30
                 text-[#f8ddd2] placeholder:text-[#a98a7d]/50
-                focus:ring-2 focus:ring-[#ff6b00] focus:border-transparent
+                focus:ring-2 focus:ring-[#b86432] focus:border-transparent
                 outline-none transition-all
               "
             />
@@ -179,7 +179,7 @@ export default function LoginForm({
           </label>
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Lock className="h-5 w-5 text-[#a98a7d] group-focus-within:text-[#ff6b00] transition-colors" />
+              <Lock className="h-5 w-5 text-[#a98a7d] group-focus-within:text-[#b86432] transition-colors" />
             </div>
             <input
               id="password"
@@ -193,7 +193,7 @@ export default function LoginForm({
                 w-full h-12 rounded-lg pl-12 pr-12
                 bg-[#170b06] border border-[#5a4136]/30
                 text-[#f8ddd2] placeholder:text-[#a98a7d]/50
-                focus:ring-2 focus:ring-[#ff6b00] focus:border-transparent
+                focus:ring-2 focus:ring-[#b86432] focus:border-transparent
                 outline-none transition-all
               "
             />
@@ -229,10 +229,10 @@ export default function LoginForm({
           disabled={submitting}
           className="
             w-full h-12 rounded-lg mt-2
-            bg-[#ff6b00] hover:bg-[#e55f00]
+            bg-[#b86432] hover:bg-[#9a5128]
             text-[#1d100a] font-display text-base font-bold uppercase tracking-[0.1em]
             flex items-center justify-center gap-2
-            shadow-lg shadow-[#ff6b00]/20
+            shadow-lg shadow-[#b86432]/20
             transition-all duration-200 active:scale-[0.98]
             disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100
           "

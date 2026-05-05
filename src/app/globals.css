@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light mode — clean off-white surfaces with the same orange accent. */
+    --background: 22 60% 98%;
+    --foreground: 19 60% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 19 60% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 19 60% 8%;
+    --primary: 25 100% 50%;
+    --primary-foreground: 19 100% 10%;
+    --secondary: 22 30% 94%;
+    --secondary-foreground: 19 60% 12%;
+    --muted: 22 30% 94%;
+    --muted-foreground: 19 18% 42%;
+    --accent: 22 50% 95%;
+    --accent-foreground: 25 100% 35%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 22 30% 88%;
+    --input: 22 30% 88%;
+    --ring: 25 100% 50%;
+    --radius: 0.75rem;
+
+    /* Stitch surface scale (mapped to literal values for arena-glass etc.) */
+    --stitch-surface: 18 50% 8%;
+    --stitch-surface-low: 19 33% 12%;
+    --stitch-surface-high: 18 24% 17%;
+    --stitch-surface-highest: 19 21% 21%;
+    --stitch-on-surface: 22 70% 90%;
+    --stitch-on-surface-variant: 22 51% 79%;
+    --stitch-outline: 19 24% 57%;
+    --stitch-outline-variant: 16 25% 28%;
+    --stitch-primary-container: 25 100% 50%;
+    --stitch-primary: 22 100% 79%;
+    --stitch-on-primary-container: 25 100% 17%;
+    --stitch-on-primary-fixed: 19 100% 10%;
+  }
+
+  .dark {
+    /* Dark mode = Stitch palette. */
+    --background: 18 50% 8%;          /* #1d100a surface */
+    --foreground: 22 70% 90%;         /* #f8ddd2 on-surface */
+    --card: 19 33% 13%;               /* #2b1c16 surface-container */
+    --card-foreground: 22 70% 90%;
+    --popover: 19 33% 13%;
+    --popover-foreground: 22 70% 90%;
+    --primary: 25 100% 50%;           /* #ff6b00 primary-container */
+    --primary-foreground: 19 100% 10%;/* #351000 on-primary-fixed */
+    --secondary: 19 21% 21%;          /* #41312a surface-container-highest */
+    --secondary-foreground: 22 70% 90%;
+    --muted: 19 21% 21%;
+    --muted-foreground: 22 51% 79%;   /* #e2bfb0 on-surface-variant */
+    --accent: 18 24% 17%;             /* #362720 surface-container-high */
+    --accent-foreground: 22 70% 90%;
+    --destructive: 6 100% 84%;        /* #ffb4ab error */
+    --destructive-foreground: 0 100% 21%;
+    --border: 16 25% 28%;             /* #5a4136 outline-variant */
+    --input: 16 25% 28%;
+    --ring: 25 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  html,
+  body {
+    min-height: 100%;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+  body {
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4 {
+    letter-spacing: -0.015em;
+  }
+  h1 {
+    letter-spacing: -0.025em;
+  }
+}
+
+/* ===== Stitch utilities ===== */
+
+.scoreboard-digit {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: -0.02em;
+}
+
+.score-glow {
+  text-shadow:
+    0 0 20px rgba(255, 107, 0, 0.5),
+    0 0 40px rgba(255, 107, 0, 0.2);
+}
+
+.shot-clock-glow {
+  text-shadow: 0 0 15px rgba(255, 180, 171, 0.4);
+}
+
+.arena-glass {
+  background: hsl(var(--card) / 0.7);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--border) / 0.6);
+}
+
+.label-caps {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.brand-mark {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  font-style: italic;
+  font-weight: 900;
+}

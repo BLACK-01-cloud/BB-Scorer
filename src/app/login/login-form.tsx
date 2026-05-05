@@ -3,19 +3,25 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ShieldCheck,
   User as UserIcon,
   Lock,
   Eye,
   EyeOff,
   ArrowRight,
 } from "lucide-react";
+import { FALLBACK_ICON } from "@/lib/branding-constants";
 import { createClient } from "@/lib/supabase/client";
 import { useGlobalLoading } from "@/components/loading-provider";
 
 const GENERIC_ERROR = "Invalid username or password";
 
-export default function LoginForm() {
+export default function LoginForm({
+  logoUrl = null,
+  siteName = "BB Score",
+}: {
+  logoUrl?: string | null;
+  siteName?: string;
+} = {}) {
   const router = useRouter();
   const search = useSearchParams();
   const next = search.get("next");
@@ -25,7 +31,6 @@ export default function LoginForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(
     queryError === "inactive"
@@ -101,22 +106,32 @@ export default function LoginForm() {
   return (
     <div
       className="
-        w-full max-w-md rounded-xl p-6 sm:p-10 shadow-2xl
-        bg-[rgba(29,16,10,0.7)] backdrop-blur-md
+        w-full max-w-md rounded-2xl p-7 sm:p-10 shadow-2xl
+        bg-[rgba(29,16,10,0.72)] backdrop-blur-md
         border border-[rgba(169,138,125,0.2)]
-        transition-transform duration-300
       "
     >
       {/* Header */}
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-[#ff6b00]/20 border border-[#ff6b00]/30 mb-6">
-          <ShieldCheck className="h-10 w-10 text-[#ff6b00]" strokeWidth={2} />
+      <div className="text-center mb-8">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#ff6b00]/15 border border-[#ff6b00]/30 mb-5 overflow-hidden">
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt={siteName}
+              className="h-full w-full object-contain p-2"
+            />
+          ) : (
+            <span className="text-5xl text-[#ff6b00] leading-none" aria-hidden>
+              {FALLBACK_ICON}
+            </span>
+          )}
         </div>
-        <h1 className="font-display text-[32px] leading-tight font-bold text-[#f8ddd2] tracking-tight mb-1">
-          Welcome to BB Score
+        <h1 className="font-display text-[28px] sm:text-[32px] leading-tight font-bold text-[#f8ddd2] tracking-tight">
+          Welcome to {siteName}
         </h1>
-        <p className="text-[#e2bfb0]/80 text-base">
-          Official Staff Authentication Portal
+        <p className="mt-1.5 text-sm text-[#a98a7d]">
+          Sign in to continue
         </p>
       </div>
 
@@ -127,7 +142,7 @@ export default function LoginForm() {
             htmlFor="username"
             className="block ml-1 text-[11px] font-bold uppercase tracking-[0.15em] text-[#a98a7d]"
           >
-            Staff Username
+            Username
           </label>
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -142,7 +157,7 @@ export default function LoginForm() {
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="j.smith_stats"
+              placeholder="username"
               className="
                 w-full h-12 rounded-lg pl-12 pr-4
                 bg-[#170b06] border border-[#5a4136]/30
@@ -160,7 +175,7 @@ export default function LoginForm() {
             htmlFor="password"
             className="block ml-1 text-[11px] font-bold uppercase tracking-[0.15em] text-[#a98a7d]"
           >
-            Secure Password
+            Password
           </label>
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -198,31 +213,6 @@ export default function LoginForm() {
           </div>
         </div>
 
-        {/* Remember + forgot */}
-        <div className="flex items-center justify-between py-1">
-          <label className="flex items-center gap-2.5 cursor-pointer group select-none">
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-              className="
-                w-5 h-5 rounded border border-[#5a4136]
-                bg-[#170b06] text-[#ff6b00]
-                focus:ring-2 focus:ring-[#ff6b00] focus:ring-offset-0 focus:ring-offset-transparent
-              "
-            />
-            <span className="text-sm text-[#e2bfb0] group-hover:text-[#f8ddd2] transition-colors">
-              Remember session
-            </span>
-          </label>
-          <a
-            href="#"
-            className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#ff6b00] hover:text-[#ffb693] transition-colors"
-          >
-            Forgot Access?
-          </a>
-        </div>
-
         {/* Error */}
         {error && (
           <p
@@ -238,9 +228,9 @@ export default function LoginForm() {
           type="submit"
           disabled={submitting}
           className="
-            w-full h-12 rounded-lg
-            bg-[#ff6b00] hover:bg-[#7a3000]
-            text-[#351000] font-display text-2xl font-semibold uppercase tracking-tight
+            w-full h-12 rounded-lg mt-2
+            bg-[#ff6b00] hover:bg-[#e55f00]
+            text-[#1d100a] font-display text-base font-bold uppercase tracking-[0.1em]
             flex items-center justify-center gap-2
             shadow-lg shadow-[#ff6b00]/20
             transition-all duration-200 active:scale-[0.98]
@@ -248,22 +238,9 @@ export default function LoginForm() {
           "
         >
           {submitting ? "Signing in…" : "Sign In"}
-          {!submitting && <ArrowRight className="h-5 w-5" strokeWidth={2.5} />}
+          {!submitting && <ArrowRight className="h-4 w-4" strokeWidth={2.5} />}
         </button>
       </form>
-
-      {/* Bottom note */}
-      <div className="mt-10 pt-6 border-t border-[#5a4136]/30 flex flex-col items-center gap-2">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-          <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#a98a7d]">
-            Encrypted via BB-SECURE v4.2
-          </span>
-        </div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#a98a7d]/40 text-center">
-          Authorized Personnel Only • IP logged on entry
-        </p>
-      </div>
     </div>
   );
 }

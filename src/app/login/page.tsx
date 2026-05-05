@@ -60,14 +60,11 @@ export default async function LoginPage() {
             <div className="text-sm text-[#a98a7d]">Loading…</div>
           }
         >
-          <LoginForm />
+          <LoginForm
+            logoUrl={branding.logo_url ?? null}
+            siteName={siteName}
+          />
         </Suspense>
-
-        <div className="mt-8 text-center">
-          <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#a98a7d]/60">
-            © {new Date().getFullYear()} {siteName} Analytics Group
-          </p>
-        </div>
       </section>
     </main>
   );

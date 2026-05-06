@@ -367,7 +367,7 @@ function TeamOnCourtTable({
                   Pts
                 </th>
                 <th className="text-right py-2 pl-2 font-display text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
-                  F
+                  Fouls
                 </th>
               </tr>
             </thead>

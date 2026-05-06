@@ -48,6 +48,7 @@ const ALL_STATUSES: MatchStatus[] = [
 
 const TIMER_PERSIST_MS = 5_000;
 const MAX_ON_COURT = 5;
+const MAX_PERSONAL_FOULS = 5;
 
 export default function ScorerBoard({
   match: initialMatch,
@@ -326,10 +327,17 @@ export default function ScorerBoard({
     }
   }
   async function resetPeriodTimer() {
+    // Reset Q resets the period timer, the shot clock, and clears the
+    // accumulated team fouls (team fouls are per-quarter in basketball).
     localTimerRef.current = match.period_duration_seconds;
+    localShotRef.current = 24;
     await patchMatch({
       time_remaining_seconds: match.period_duration_seconds,
       timer_running: false,
+      shot_clock_seconds: 24,
+      shot_clock_running: false,
+      home_team_fouls: 0,
+      away_team_fouls: 0,
     });
   }
   async function setShotClock(value: number) {
@@ -411,6 +419,41 @@ export default function ScorerBoard({
     .map((r) => ({ row: r, stat: statsByPlayerId.get(r.player_id) }))
     .filter((d) => d.stat?.is_active);
 
+  // Foul-out alerts. Fire ONCE per player when they cross to 5 fouls while
+  // on court. If their fouls go back below 5 (e.g. an undo), the dedupe slot
+  // clears so the alert can re-fire if it happens again.
+  const foulOutNotifiedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const stillFouledOut = new Set<string>();
+    for (const s of stats) {
+      if ((s.fouls ?? 0) >= MAX_PERSONAL_FOULS && s.is_active) {
+        stillFouledOut.add(s.player_id);
+        if (!foulOutNotifiedRef.current.has(s.player_id)) {
+          foulOutNotifiedRef.current.add(s.player_id);
+          const row = roster.find((r) => r.player_id === s.player_id);
+          const teamShort =
+            s.team_id === homeTeam.id
+              ? homeTeam.short_name
+              : awayTeam.short_name;
+          const name =
+            row?.player?.display_name ||
+            row?.player?.full_name ||
+            "A player";
+          toast.push(
+            `${name} (${teamShort}) has reached ${MAX_PERSONAL_FOULS} fouls — fouled out. Substitute them off court.`,
+            "error",
+          );
+        }
+      }
+    }
+    // Drop any player who is no longer at 5+ fouls or no longer on court so
+    // they can be re-flagged later if needed.
+    for (const id of Array.from(foulOutNotifiedRef.current)) {
+      if (!stillFouledOut.has(id)) foulOutNotifiedRef.current.delete(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stats]);
+
   // ONE shared scoring selection across both teams. Tapping an on-court card
   // in either TeamPanel writes here; the ScoringPanel above match controls
   // reads from this and routes points/fouls to the correct team_id.
@@ -454,6 +497,14 @@ export default function ScorerBoard({
 
   function bumpSelectedPoints(delta: number) {
     if (!selectedScoringPlayer) return;
+    const currentFouls = selectedScoringInfo?.fouls ?? 0;
+    if (currentFouls >= MAX_PERSONAL_FOULS) {
+      toast.push(
+        `${selectedScoringInfo?.name ?? "Player"} reached five fouls. Change the player.`,
+        "error",
+      );
+      return;
+    }
     addPlayerPoints(
       selectedScoringPlayer.playerId,
       selectedScoringPlayer.teamId,
@@ -462,6 +513,8 @@ export default function ScorerBoard({
   }
   function bumpSelectedFoul(delta: number) {
     if (!selectedScoringPlayer) return;
+    // Foul +/- is always allowed so the scorer can correct mistakes even on
+    // a fouled-out player.
     addPlayerFoul(
       selectedScoringPlayer.playerId,
       selectedScoringPlayer.teamId,
@@ -1419,16 +1472,30 @@ function ChipRow({
           {rows.map(({ row: r, stat }) => {
             const selected = r.player_id === selectedPlayerId;
             const fouls = stat?.fouls ?? 0;
+            const fouledOut = fouls >= MAX_PERSONAL_FOULS;
+            const foulWarning = !fouledOut && fouls >= 3;
             return (
               <button
                 key={r.id}
                 type="button"
                 onClick={() => onSelect(r.player_id)}
                 aria-pressed={selected}
+                aria-disabled={fouledOut || undefined}
+                title={
+                  fouledOut
+                    ? "Player has reached 5 fouls — change the player"
+                    : foulWarning
+                    ? `${fouls} fouls — one more and they're close to fouling out`
+                    : undefined
+                }
                 className={cn(
                   "flex items-center gap-1.5 sm:gap-2 pl-1 pr-2 sm:pl-1.5 sm:pr-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg border text-xs sm:text-sm transition-colors w-full sm:w-auto",
                   selected
                     ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : fouledOut
+                    ? "bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/40 border-red-300 dark:border-red-700/60 text-red-900 dark:text-red-100"
+                    : foulWarning
+                    ? "bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/40 border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-100"
                     : "bg-card hover:bg-accent border-border",
                 )}
               >

@@ -470,7 +470,7 @@ export default function ScorerBoard({
   }
 
   return (
-    <div className="space-y-3 pb-10">
+    <div className="space-y-3 pb-40">
       {/* Sticky match sub-header */}
       <div className="sticky top-14 z-20 -mx-4 sm:mx-0 px-4 sm:px-0 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70 border-b">
         <div className="flex flex-wrap items-center justify-between gap-2 py-2">
@@ -1049,13 +1049,12 @@ function TeamPanel({
   return (
     <Card
       className={cn(
-        "overflow-hidden",
         accent === "home" ? "border-primary/20" : "border-blue-500/20",
       )}
     >
       <div
         className={cn(
-          "h-1.5 w-full",
+          "h-1.5 w-full rounded-t-lg",
           accent === "home" ? "bg-primary" : "bg-blue-500",
         )}
       />
@@ -1675,7 +1674,7 @@ function SearchableRosterSelect({
               />
             </div>
           </div>
-          <ul role="listbox" className="max-h-56 overflow-auto py-1">
+          <ul role="listbox" className="max-h-56 overflow-auto pt-1 pb-2">
             {rows.length === 0 ? (
               <li className="px-3 py-2 text-xs text-muted-foreground italic">
                 {emptyLabel}

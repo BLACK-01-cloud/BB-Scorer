@@ -704,6 +704,22 @@ export default function ScorerBoard({
         </CardContent>
       </Card>
 
+      {/* Time outs — pauses both clocks and runs a 60s countdown */}
+      <TimeoutPanel
+        homeTeam={homeTeam}
+        awayTeam={awayTeam}
+        disabled={busy}
+        onPauseMatch={async () => {
+          if (!match.timer_running && !match.shot_clock_running) return;
+          await patchMatch({
+            timer_running: false,
+            shot_clock_running: false,
+            time_remaining_seconds: localTimerRef.current,
+            shot_clock_seconds: localShotRef.current,
+          });
+        }}
+      />
+
       {/* Substitution panels — quick-swap dropdown + bench. On-court roster
           is shown as chips inside the scoring section above, no duplication. */}
       <div className="grid lg:grid-cols-2 gap-4">
@@ -1837,6 +1853,245 @@ function BenchPlayerCard({
         <ArrowUpFromLine className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">In</span>
       </Button>
+    </div>
+  );
+}
+
+function TimeoutPanel({
+  homeTeam,
+  awayTeam,
+  disabled,
+  onPauseMatch,
+}: {
+  homeTeam: Team;
+  awayTeam: Team;
+  disabled: boolean;
+  onPauseMatch: () => Promise<void>;
+}) {
+  const MAX_TIMEOUTS = 6;
+  const toast = useToast();
+  const [counts, setCounts] = useState<{ home: number; away: number }>({
+    home: 0,
+    away: 0,
+  });
+  // Brief flash so the scorer can tell their tap registered.
+  const [justCalled, setJustCalled] = useState<"home" | "away" | null>(null);
+  const flashRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function flash(side: "home" | "away") {
+    setJustCalled(side);
+    if (flashRef.current) clearTimeout(flashRef.current);
+    flashRef.current = setTimeout(() => setJustCalled(null), 1400);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (flashRef.current) clearTimeout(flashRef.current);
+    };
+  }, []);
+
+  async function callTimeout(side: "home" | "away") {
+    if (disabled) return;
+    if (counts[side] >= MAX_TIMEOUTS) return;
+    await onPauseMatch();
+    setCounts((c) => ({ ...c, [side]: c[side] + 1 }));
+    flash(side);
+    const teamName = (side === "home" ? homeTeam : awayTeam).short_name;
+    toast.push(`Time out called for ${teamName}.`, "success");
+  }
+
+  function undoTimeout(side: "home" | "away") {
+    setCounts((c) => {
+      if (c[side] <= 0) return c;
+      return { ...c, [side]: c[side] - 1 };
+    });
+    const teamName = (side === "home" ? homeTeam : awayTeam).short_name;
+    toast.push(`Time out reverted for ${teamName}.`, "info");
+  }
+
+  return (
+    <div className="relative rounded-2xl overflow-hidden border border-border/40 shadow-lg">
+      {/* Center label badge — overlays the split point */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
+        <div className="grid place-items-center h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-background border-2 border-border/70 shadow-md">
+          <span className="font-display font-black text-2xl sm:text-3xl tracking-tighter text-foreground leading-none">
+            T
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 divide-x divide-border/40">
+        <TimeoutSide
+          team={homeTeam}
+          accent="home"
+          align="left"
+          used={counts.home}
+          max={MAX_TIMEOUTS}
+          disabled={disabled}
+          justCalled={justCalled === "home"}
+          onCall={() => callTimeout("home")}
+          onUndo={() => undoTimeout("home")}
+        />
+        <TimeoutSide
+          team={awayTeam}
+          accent="away"
+          align="right"
+          used={counts.away}
+          max={MAX_TIMEOUTS}
+          disabled={disabled}
+          justCalled={justCalled === "away"}
+          onCall={() => callTimeout("away")}
+          onUndo={() => undoTimeout("away")}
+        />
+      </div>
+    </div>
+  );
+}
+
+function TimeoutSide({
+  team,
+  accent,
+  align,
+  used,
+  max,
+  disabled,
+  justCalled,
+  onCall,
+  onUndo,
+}: {
+  team: Team;
+  accent: "home" | "away";
+  align: "left" | "right";
+  used: number;
+  max: number;
+  disabled: boolean;
+  justCalled: boolean;
+  onCall: () => void;
+  onUndo: () => void;
+}) {
+  const exhausted = used >= max;
+  const bg =
+    accent === "home"
+      ? "bg-gradient-to-br from-primary/20 via-primary/10 to-transparent hover:from-primary/30 hover:via-primary/15"
+      : "bg-gradient-to-bl from-blue-500/20 via-blue-500/10 to-transparent hover:from-blue-500/30 hover:via-blue-500/15";
+  const dotOn = accent === "home" ? "bg-primary" : "bg-blue-500";
+  const dotOff = "bg-foreground/15";
+  const labelText =
+    accent === "home" ? "text-primary" : "text-blue-500";
+  const ringFlash =
+    accent === "home"
+      ? "ring-primary/70 bg-primary/30"
+      : "ring-blue-500/70 bg-blue-500/30";
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onCall}
+        disabled={disabled || exhausted}
+        aria-label={`Call timeout for ${team.name}`}
+        className={cn(
+          "group relative w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-5 sm:py-6 transition-colors text-left overflow-hidden",
+          align === "right" && "flex-row-reverse text-right",
+          bg,
+          "disabled:opacity-50 disabled:cursor-not-allowed",
+        )}
+      >
+        {/* Team-logo watermark, centered behind the content. Falls back to a
+            big "TO" if the team has no uploaded logo. */}
+        {team.logo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={team.logo_url}
+            alt=""
+            aria-hidden
+            className={cn(
+              "absolute inset-0 m-auto pointer-events-none select-none object-contain",
+              "h-[110%] w-auto max-w-[80%]",
+              "blur-[1px] sm:blur-[1.5px]",
+              justCalled ? "opacity-90 blur-[0.5px]" : "opacity-60",
+              "transition-all",
+            )}
+          />
+        ) : (
+          <span
+            aria-hidden
+            className="absolute inset-0 grid place-items-center font-display font-black text-[88px] sm:text-[120px] leading-none select-none pointer-events-none opacity-[0.07] tracking-tighter"
+          >
+            TO
+          </span>
+        )}
+
+        {/* Click feedback flash overlay */}
+        {justCalled && (
+          <span
+            aria-hidden
+            className={cn(
+              "absolute inset-0 ring-4 ring-inset rounded-none animate-pulse pointer-events-none",
+              ringFlash,
+            )}
+          />
+        )}
+
+        <div
+          className={cn(
+            "relative z-10 min-w-0 flex-1 flex flex-col gap-1",
+            align === "right" && "items-end",
+          )}
+        >
+          <span className={cn("label-caps", labelText)}>
+            {team.short_name}
+          </span>
+          <span className="font-display text-lg sm:text-2xl font-black uppercase tracking-tight leading-tight">
+            {justCalled
+              ? "Time out called!"
+              : exhausted
+              ? "Out of timeouts"
+              : "Call time out"}
+          </span>
+          {/* Usage dots */}
+          <div
+            className={cn(
+              "flex items-center gap-1 mt-1.5",
+              align === "right" && "flex-row-reverse",
+            )}
+          >
+            {Array.from({ length: max }).map((_, i) => (
+              <span
+                key={i}
+                className={cn(
+                  "h-2 w-2 rounded-full transition-colors",
+                  i < used ? dotOn : dotOff,
+                )}
+              />
+            ))}
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono ml-1">
+              {used}/{max}
+            </span>
+          </div>
+        </div>
+      </button>
+
+      {/* Undo / decrement chip — sits in the outer corner of the side. */}
+      {used > 0 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onUndo();
+          }}
+          aria-label={`Undo last timeout for ${team.name}`}
+          title="Undo last time out"
+          className={cn(
+            "absolute top-2 z-20 inline-flex items-center justify-center h-7 w-7 rounded-full border bg-background/90 text-foreground hover:bg-background transition-colors shadow-sm",
+            align === "left" ? "right-2" : "left-2",
+          )}
+        >
+          <span className="font-display font-black leading-none text-base">
+            −
+          </span>
+        </button>
+      )}
     </div>
   );
 }

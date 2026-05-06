@@ -31,6 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
+import { LoadingLink } from "@/components/loading-link";
 import { cn, formatDateTime, toDatetimeLocal } from "@/lib/utils";
 
 type SeasonOpt = {
@@ -280,14 +281,22 @@ export default function MatchesManager({
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end flex-wrap gap-2">
-                        <Link
+                        <LoadingLink
                           href={`/scorer/match/${m.id}`}
                           className={cn(
                             buttonVariants({ size: "sm", variant: "default" }),
                           )}
                         >
                           Score
-                        </Link>
+                        </LoadingLink>
+                        <LoadingLink
+                          href={`/admin/matches/${m.id}`}
+                          className={cn(
+                            buttonVariants({ size: "sm", variant: "outline" }),
+                          )}
+                        >
+                          Preview
+                        </LoadingLink>
                         <Link
                           href={`/live/match/${m.id}`}
                           className={cn(

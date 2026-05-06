@@ -1,7 +1,12 @@
 // Hand-written types matching supabase/migrations/0001_initial_schema.sql.
 // Replace with generated types via `supabase gen types typescript --project-id …`.
 
-export type MatchType = "league" | "quarter_final" | "semi_final" | "final";
+export type MatchType =
+  | "league"
+  | "playoff"
+  | "quarter_final"
+  | "semi_final"
+  | "final";
 export type MatchStatus =
   | "scheduled"
   | "live"

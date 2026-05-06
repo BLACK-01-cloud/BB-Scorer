@@ -71,6 +71,7 @@ function emptyForm(seasons: SeasonOpt[]): FormState {
 
 const matchTypes: MatchType[] = [
   "league",
+  "playoff",
   "quarter_final",
   "semi_final",
   "final",

@@ -225,6 +225,19 @@ export default function ScorerBoard({
     });
   }
   async function addPlayerPoints(playerId: string, tId: string, delta: number) {
+    // Positive deltas of 1/2/3 are recorded as a made shot of that value so
+    // the per-bucket pts_1/pts_2/pts_3 counters get updated alongside the
+    // total. Anything else (undo, manual adjust) goes through the generic
+    // delta RPC which only touches the total.
+    if (delta === 1 || delta === 2 || delta === 3) {
+      await callRpc("record_player_made_shot", {
+        p_match_id: match.id,
+        p_team_id: tId,
+        p_player_id: playerId,
+        p_point_value: delta,
+      });
+      return;
+    }
     await callRpc("add_player_points", {
       p_match_id: match.id,
       p_team_id: tId,

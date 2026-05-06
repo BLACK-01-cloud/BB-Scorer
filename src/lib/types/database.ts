@@ -91,6 +91,9 @@ export interface MatchPlayerStat {
   team_id: string;
   player_id: string;
   points: number;
+  pts_1: number;
+  pts_2: number;
+  pts_3: number;
   fouls: number;
   is_active: boolean;
   created_at: string;
@@ -147,6 +150,15 @@ export interface Database {
           p_team_id: string;
           p_player_id: string;
           p_delta: number;
+        };
+        Returns: void;
+      };
+      record_player_made_shot: {
+        Args: {
+          p_match_id: string;
+          p_team_id: string;
+          p_player_id: string;
+          p_point_value: number;
         };
         Returns: void;
       };

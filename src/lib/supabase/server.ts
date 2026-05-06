@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import type { Database } from "@/lib/types/database";
+import { createSafeFetch } from "./safe-fetch";
 
 export function createClient() {
   const cookieStore = cookies();
@@ -23,6 +24,7 @@ export function createClient() {
           }
         },
       },
+      global: { fetch: createSafeFetch() },
     },
   );
 }

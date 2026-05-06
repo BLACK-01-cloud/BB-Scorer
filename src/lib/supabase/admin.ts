@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/types/database";
+import { createSafeFetch } from "./safe-fetch";
 
 // Service-role client. Bypasses RLS — use ONLY in trusted server contexts
 // (route handlers, server actions, edge/cron jobs). Never import from a client
@@ -19,5 +20,6 @@ export function createAdminClient() {
       autoRefreshToken: false,
       persistSession: false,
     },
+    global: { fetch: createSafeFetch() },
   });
 }

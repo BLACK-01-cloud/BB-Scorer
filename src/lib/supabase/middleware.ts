@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/types/database";
+import { createSafeFetch } from "./safe-fetch";
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -23,12 +24,23 @@ export async function updateSession(request: NextRequest) {
           }
         },
       },
+      // Short timeout — middleware blocks every request, must fail fast.
+      global: { fetch: createSafeFetch(4000) },
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // If Supabase is unreachable (project paused, network down, etc.) we let
+  // the request through unauthenticated rather than crashing every page.
+  // Page-level guards still gate access; users on protected routes will be
+  // redirected to /login as if their session was missing.
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] =
+    null;
+  try {
+    const result = await supabase.auth.getUser();
+    user = result.data.user;
+  } catch {
+    user = null;
+  }
 
   const path = request.nextUrl.pathname;
   const isProtected = path.startsWith("/admin") || path.startsWith("/scorer");

@@ -25,8 +25,8 @@ export default async function TeamPlayersPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="League · Roster"
-        title="Team players"
+        eyebrow="League · Assign Player to Team"
+        title="Assign Player to Team"
         description="Assign players to teams per season. Toggle a row inactive before re-assigning the same player to another team in the same season."
       />
       <TeamPlayersManager

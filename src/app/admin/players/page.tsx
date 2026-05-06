@@ -16,7 +16,7 @@ export default async function PlayersPage() {
       <PageHeader
         eyebrow="Player Database"
         title="Manage Rosters"
-        description="The player roster. Team assignments live under Roster so they can change per season."
+        description="The player roster. Team assignments live under Assign Player to Team so they can change per season."
       />
       <PlayersManager initial={data ?? []} loadError={error?.message ?? null} />
     </div>

@@ -103,6 +103,26 @@ export default function TeamPlayersManager({
     );
   }, [players, assignedPlayerIds, editing]);
 
+  // Jersey conflict: another active assignment on the same team in the
+  // selected season already uses this jersey number. Mirrors the DB unique
+  // index `team_players_unique_jersey` (active rows only).
+  const jerseyConflict = useMemo(() => {
+    const j = form.jersey_number.trim();
+    if (!j || !form.team_id || !form.active) return null;
+    const conflict = rows.find(
+      (r) =>
+        r.active &&
+        r.team_id === form.team_id &&
+        r.jersey_number != null &&
+        r.jersey_number.trim() === j &&
+        (!editing || r.id !== editing.id),
+    );
+    if (!conflict) return null;
+    const name =
+      conflict.player?.display_name || conflict.player?.full_name || "another player";
+    return `Jersey #${j} is already used by ${name} on this team this season.`;
+  }, [rows, form.team_id, form.jersey_number, form.active, editing]);
+
   useEffect(() => {
     if (!seasonId) {
       setRows([]);
@@ -155,6 +175,10 @@ export default function TeamPlayersManager({
     if (!seasonId) return;
     if (!form.team_id || !form.player_id) {
       toast.push("Team and player are required.", "error");
+      return;
+    }
+    if (jerseyConflict) {
+      toast.push(jerseyConflict, "error");
       return;
     }
     setSaving(true);
@@ -432,7 +456,22 @@ export default function TeamPlayersManager({
                   setForm({ ...form, jersey_number: e.target.value })
                 }
                 placeholder="23"
+                aria-invalid={jerseyConflict ? true : undefined}
+                aria-describedby={jerseyConflict ? "jersey-error" : undefined}
+                className={cn(
+                  jerseyConflict &&
+                    "border-destructive focus-visible:ring-destructive",
+                )}
               />
+              {jerseyConflict && (
+                <p
+                  id="jersey-error"
+                  role="alert"
+                  className="text-xs text-destructive"
+                >
+                  {jerseyConflict}
+                </p>
+              )}
             </div>
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -449,7 +488,7 @@ export default function TeamPlayersManager({
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={onSave} disabled={saving}>
+            <Button onClick={onSave} disabled={saving || !!jerseyConflict}>
               {saving ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>

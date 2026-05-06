@@ -12,7 +12,7 @@ const navItems = [
   { href: "/admin/seasons", label: "Seasons" },
   { href: "/admin/teams", label: "Teams" },
   { href: "/admin/players", label: "Players" },
-  { href: "/admin/team-players", label: "Roster" },
+  { href: "/admin/team-players", label: "Assign Player to Team" },
   { href: "/admin/matches", label: "Matches" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/settings", label: "Settings" },

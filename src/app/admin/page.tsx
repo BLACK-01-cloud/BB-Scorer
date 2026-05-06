@@ -67,7 +67,7 @@ export default async function AdminDashboard({
   const { data: recentMatches } = await supabase
     .from("matches")
     .select(
-      "id, match_date, match_status, home_score, away_score, home_team:home_team_id(name), away_team:away_team_id(name)",
+      "id, match_date, match_status, home_score, away_score, home_team:home_team_id(name, short_name, logo_url), away_team:away_team_id(name, short_name, logo_url)",
     )
     .order("match_date", { ascending: false })
     .limit(8);
@@ -392,7 +392,23 @@ export default async function AdminDashboard({
                           href={`/admin/matches/${m.id}`}
                           className="font-medium hover:text-primary"
                         >
-                          {home?.name} vs {away?.name}
+                          <span className="flex items-center gap-2 min-w-0">
+                            <RecentTeamLogo
+                              logoUrl={home?.logo_url ?? null}
+                              shortName={home?.short_name}
+                              name={home?.name}
+                            />
+                            <span className="truncate">{home?.name}</span>
+                            <span className="text-muted-foreground text-xs px-1">
+                              vs
+                            </span>
+                            <RecentTeamLogo
+                              logoUrl={away?.logo_url ?? null}
+                              shortName={away?.short_name}
+                              name={away?.name}
+                            />
+                            <span className="truncate">{away?.name}</span>
+                          </span>
                         </LoadingLink>
                       </td>
                       <td className="py-3 px-2 text-center text-xs text-muted-foreground hidden sm:table-cell">
@@ -675,6 +691,32 @@ function SpotlightTeamRow({
           {score}
         </div>
       </div>
+    </div>
+  );
+}
+
+function RecentTeamLogo({
+  logoUrl,
+  shortName,
+  name,
+}: {
+  logoUrl: string | null;
+  shortName?: string | null;
+  name?: string | null;
+}) {
+  if (logoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={logoUrl}
+        alt={name ?? shortName ?? "Team logo"}
+        className="h-7 w-7 rounded-full object-cover border bg-background/60 shrink-0"
+      />
+    );
+  }
+  return (
+    <div className="h-7 w-7 rounded-full border bg-primary/10 text-primary border-primary/30 grid place-items-center font-display font-bold uppercase tracking-wider text-[9px] shrink-0">
+      {shortName?.slice(0, 3) ?? "—"}
     </div>
   );
 }

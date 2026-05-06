@@ -169,52 +169,54 @@ export default function LiveScoreboard({
             </span>
           </div>
 
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 py-6 sm:py-8">
+          <div className="flex flex-row items-center justify-between gap-2 sm:gap-6 md:gap-8 py-4 sm:py-8">
             {/* Home team */}
-            <div className="flex flex-col items-center md:items-end text-center md:text-right">
-              <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground uppercase tracking-tight">
+            <div className="flex flex-col items-center md:items-end text-center md:text-right min-w-0 flex-1">
+              <ResponsiveTeamLogo team={homeTeam} />
+              <h2 className="font-display text-base sm:text-2xl md:text-3xl font-bold text-foreground uppercase tracking-tight mt-2 truncate max-w-full">
                 {homeTeam.name}
               </h2>
-              <div className="font-display text-[64px] sm:text-[72px] font-bold leading-none text-primary score-glow scoreboard-digit mt-2">
+              <div className="font-display text-5xl sm:text-[64px] md:text-[72px] font-bold leading-none text-primary score-glow scoreboard-digit mt-2">
                 {match.home_score}
               </div>
-              <div className="mt-3 flex items-baseline gap-1.5 text-[11px] uppercase tracking-[0.12em] font-bold">
-                <span className="text-muted-foreground">Fouls:</span>
+              <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5 text-[10px] sm:text-[11px] uppercase tracking-[0.12em] font-bold whitespace-nowrap">
+                <span className="text-muted-foreground">Team Fouls:</span>
                 <span className="text-primary">{match.home_team_fouls}</span>
               </div>
             </div>
 
             {/* Centerpiece */}
-            <div className="flex flex-col items-center bg-muted/70 px-6 sm:px-8 py-5 sm:py-6 rounded-2xl border border-border/60 min-w-[14rem]">
-              <span className="font-display text-[11px] font-bold uppercase tracking-[0.3em] text-primary/90 mb-2">
+            <div className="flex flex-col items-center bg-muted/70 px-2.5 sm:px-8 py-3 sm:py-6 rounded-2xl border border-border/60 min-w-[6.25rem] sm:min-w-[14rem] shrink-0">
+              <span className="font-display text-[9px] sm:text-[11px] font-bold uppercase tracking-[0.2em] sm:tracking-[0.3em] text-primary/90 mb-1.5 sm:mb-2 whitespace-nowrap">
                 Quarter {match.current_period}
               </span>
-              <div className="font-display font-bold text-foreground text-5xl sm:text-6xl font-mono tracking-widest scoreboard-digit">
+              <div className="font-display font-bold text-foreground text-2xl sm:text-5xl md:text-6xl font-mono tracking-widest scoreboard-digit">
                 {formatClock(displayTimer)}
               </div>
-              <div className="mt-3 flex flex-col items-center">
-                <span className="font-display text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+              <div className="mt-2 sm:mt-3 flex flex-col items-center">
+                <span className="font-display text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
                   Shot
                 </span>
-                <span className="text-3xl font-bold text-destructive shot-clock-glow font-mono scoreboard-digit">
+                <span className="text-xl sm:text-3xl font-bold text-destructive shot-clock-glow font-mono scoreboard-digit">
                   {String(displayShot).padStart(2, "0")}
                 </span>
               </div>
-              <div className="mt-3">
+              <div className="mt-2 sm:mt-3">
                 <StatusPill status={match.match_status} />
               </div>
             </div>
 
             {/* Away team */}
-            <div className="flex flex-col items-center md:items-start text-center md:text-left">
-              <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground uppercase tracking-tight">
+            <div className="flex flex-col items-center md:items-start text-center md:text-left min-w-0 flex-1">
+              <ResponsiveTeamLogo team={awayTeam} />
+              <h2 className="font-display text-base sm:text-2xl md:text-3xl font-bold text-foreground uppercase tracking-tight mt-2 truncate max-w-full">
                 {awayTeam.name}
               </h2>
-              <div className="font-display text-[64px] sm:text-[72px] font-bold leading-none text-primary score-glow scoreboard-digit mt-2">
+              <div className="font-display text-5xl sm:text-[64px] md:text-[72px] font-bold leading-none text-primary score-glow scoreboard-digit mt-2">
                 {match.away_score}
               </div>
-              <div className="mt-3 flex items-baseline gap-1.5 text-[11px] uppercase tracking-[0.12em] font-bold">
-                <span className="text-muted-foreground">Fouls:</span>
+              <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5 text-[10px] sm:text-[11px] uppercase tracking-[0.12em] font-bold whitespace-nowrap">
+                <span className="text-muted-foreground">Team Fouls:</span>
                 <span className="text-primary">{match.away_team_fouls}</span>
               </div>
             </div>
@@ -332,6 +334,7 @@ function TeamOnCourtTable({
       <div className="p-5">
         <div className="flex items-center justify-between mb-4 gap-2">
           <div className="flex items-center gap-2 min-w-0">
+            <TeamLogoBadge team={team} size={40} accentChipClass={accentChip} />
             <span
               className={
                 "inline-flex items-center justify-center h-6 px-2 rounded border text-[10px] uppercase tracking-widest font-bold " +
@@ -609,6 +612,67 @@ function PlayerAvatar({
           {jersey}
         </span>
       )}
+    </div>
+  );
+}
+
+function ResponsiveTeamLogo({ team }: { team: Team }) {
+  // Scales with breakpoints so the live hero fits on mobile without
+  // pushing the centerpiece off screen.
+  const sizeClasses = "h-14 w-14 sm:h-24 sm:w-24 md:h-28 md:w-28";
+  if (team.logo_url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={team.logo_url}
+        alt={team.name}
+        className={`${sizeClasses} rounded-md object-contain border bg-background/60 shrink-0`}
+      />
+    );
+  }
+  return (
+    <div
+      className={`${sizeClasses} rounded-md border bg-muted/60 text-muted-foreground grid place-items-center font-display font-bold uppercase tracking-wider shrink-0`}
+    >
+      <span className="text-base sm:text-2xl md:text-3xl">
+        {team.short_name?.slice(0, 3) ?? "—"}
+      </span>
+    </div>
+  );
+}
+
+function TeamLogoBadge({
+  team,
+  size,
+  accentChipClass,
+}: {
+  team: Team;
+  size: number;
+  accentChipClass?: string;
+}) {
+  const dim = { width: size, height: size };
+  if (team.logo_url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={team.logo_url}
+        alt={team.name}
+        style={dim}
+        className="rounded-md object-contain border bg-background/60 shrink-0"
+      />
+    );
+  }
+  return (
+    <div
+      style={dim}
+      className={
+        "rounded-md border grid place-items-center font-display font-bold uppercase tracking-wider shrink-0 " +
+        (accentChipClass ?? "bg-muted/60 text-muted-foreground")
+      }
+    >
+      <span style={{ fontSize: Math.max(10, Math.round(size / 3)) }}>
+        {team.short_name?.slice(0, 3) ?? "—"}
+      </span>
     </div>
   );
 }

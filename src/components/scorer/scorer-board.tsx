@@ -836,29 +836,65 @@ function TeamHeader({
       ? "border-primary/30 bg-primary/10 text-primary"
       : "border-blue-500/30 bg-blue-500/10 text-blue-500";
   return (
-    <div className="text-center min-w-0">
+    <div
+      className={cn(
+        "min-w-0 w-full flex gap-2 sm:gap-5",
+        // Mobile: stack vertically and center so the logo + score have room.
+        // sm+: keep the horizontal in-row layout requested for desktop.
+        "flex-col items-center text-center",
+        accent === "home"
+          ? "sm:flex-row sm:items-center sm:justify-start sm:text-left"
+          : "sm:flex-row-reverse sm:items-center sm:justify-start sm:text-right",
+      )}
+    >
+      {/* Big logo — sits above the score on mobile, beside it on sm+ */}
+      <div className="aspect-square shrink-0 h-16 sm:h-36 md:h-44">
+        {team.logo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={team.logo_url}
+            alt={team.name}
+            className="w-full h-full rounded-xl object-contain border bg-background/60"
+          />
+        ) : (
+          <div
+            className={cn(
+              "w-full h-full rounded-xl border grid place-items-center font-display font-bold uppercase tracking-wider",
+              ringClass,
+            )}
+          >
+            <span className="text-2xl sm:text-5xl">
+              {team.short_name?.slice(0, 3) ?? "—"}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Name / score / team-fouls stack */}
       <div
         className={cn(
-          "inline-flex items-center justify-center h-6 px-2 rounded-full border text-[10px] uppercase tracking-widest font-semibold",
-          ringClass,
+          "min-w-0 flex flex-col",
+          "items-center",
+          accent === "home"
+            ? "sm:items-start sm:text-left"
+            : "sm:items-end sm:text-right",
         )}
       >
-        {team.short_name}
-      </div>
-      <div className="font-bold text-xs sm:text-base truncate mt-1">
-        {team.name}
-      </div>
-      <div
-        className={cn(
-          "font-mono text-5xl sm:text-7xl font-black scoreboard-digit leading-none my-1 sm:my-2",
-          accentColor,
-        )}
-      >
-        {score}
-      </div>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-        Fouls{" "}
-        <span className="font-mono font-bold text-foreground">{fouls}</span>
+        <div className="font-display font-bold text-sm sm:text-2xl md:text-3xl uppercase tracking-tight truncate max-w-full">
+          {team.name}
+        </div>
+        <div
+          className={cn(
+            "font-mono text-5xl sm:text-8xl md:text-9xl font-black scoreboard-digit leading-none my-1 sm:my-2",
+            accentColor,
+          )}
+        >
+          {score}
+        </div>
+        <div className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+          Team Fouls{" "}
+          <span className="font-mono font-bold text-foreground">{fouls}</span>
+        </div>
       </div>
     </div>
   );
@@ -907,11 +943,14 @@ function TeamScoreCard({
         )}
       />
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between">
-          <span className="truncate">
-            {team.short_name}{" "}
-            <span className="text-muted-foreground font-normal text-sm">
-              · {team.name}
+        <CardTitle className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2 min-w-0">
+            <TeamLogoBadge team={team} size={44} />
+            <span className="truncate">
+              {team.short_name}{" "}
+              <span className="text-muted-foreground font-normal text-sm">
+                · {team.name}
+              </span>
             </span>
           </span>
           <span className="font-mono text-3xl scoreboard-digit">{score}</span>
@@ -1061,6 +1100,7 @@ function TeamPanel({
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
+            <TeamLogoBadge team={team} size={44} accentChipClass={accentRingClass} />
             <div
               className={cn(
                 "inline-flex items-center justify-center h-7 px-2 rounded-md border text-[10px] uppercase tracking-widest font-bold",
@@ -1797,6 +1837,42 @@ function BenchPlayerCard({
         <ArrowUpFromLine className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">In</span>
       </Button>
+    </div>
+  );
+}
+
+function TeamLogoBadge({
+  team,
+  size,
+  accentChipClass,
+}: {
+  team: Team;
+  size: number;
+  accentChipClass?: string;
+}) {
+  const dim = { width: size, height: size };
+  if (team.logo_url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={team.logo_url}
+        alt={team.name}
+        style={dim}
+        className="rounded-md object-contain border bg-background/60 shrink-0"
+      />
+    );
+  }
+  return (
+    <div
+      style={dim}
+      className={cn(
+        "rounded-md border grid place-items-center font-display font-bold uppercase tracking-wider shrink-0",
+        accentChipClass ?? "bg-muted/60 text-muted-foreground",
+      )}
+    >
+      <span style={{ fontSize: Math.max(10, Math.round(size / 3)) }}>
+        {team.short_name?.slice(0, 3) ?? "—"}
+      </span>
     </div>
   );
 }

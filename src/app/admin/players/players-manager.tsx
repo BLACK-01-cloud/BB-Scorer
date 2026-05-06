@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Player, EntityStatus } from "@/lib/types/database";
 import { createClient } from "@/lib/supabase/client";
@@ -67,6 +67,10 @@ export default function PlayersManager({
   const [form, setForm] = useState<FormState>(empty);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState("");
+  const [positionFilter, setPositionFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | EntityStatus>(
+    "all",
+  );
   const [pickedFile, setPickedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [clearPhoto, setClearPhoto] = useState(false);
@@ -195,7 +199,32 @@ export default function PlayersManager({
     router.refresh();
   }
 
+  // Always show the five standard basketball positions, then append any
+  // custom values that show up in the data (so non-standard positions still
+  // remain filterable without disappearing from the list).
+  const positionOptions = useMemo(() => {
+    const standard = ["PG", "SG", "SF", "PF", "C"];
+    const standardSet = new Set(standard);
+    const extras = new Set<string>();
+    for (const p of players) {
+      const pos = (p.position ?? "").trim();
+      if (pos && !standardSet.has(pos)) extras.add(pos);
+    }
+    return [
+      ...standard,
+      ...Array.from(extras).sort((a, b) => a.localeCompare(b)),
+    ];
+  }, [players]);
+
   const visible = players.filter((p) => {
+    if (statusFilter !== "all" && p.status !== statusFilter) return false;
+    if (positionFilter !== "all") {
+      if (positionFilter === "__none__") {
+        if ((p.position ?? "").trim() !== "") return false;
+      } else if ((p.position ?? "").trim() !== positionFilter) {
+        return false;
+      }
+    }
     if (!filter.trim()) return true;
     const f = filter.toLowerCase();
     return (
@@ -204,19 +233,74 @@ export default function PlayersManager({
     );
   });
 
+  const hasActiveFilters =
+    filter.trim() !== "" || positionFilter !== "all" || statusFilter !== "all";
+
+  function clearFilters() {
+    setFilter("");
+    setPositionFilter("all");
+    setStatusFilter("all");
+  }
+
   const previewPhotoSrc =
     previewUrl ?? (clearPhoto ? null : form.photo_url || null);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-        <Input
-          placeholder="Search players…"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="max-w-sm"
-        />
-        <Button onClick={openCreate}>+ New player</Button>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 sm:gap-3 flex-1 max-w-3xl">
+          <div className="space-y-1">
+            <Label className="text-xs">Search</Label>
+            <Input
+              placeholder="Search by name…"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1 sm:min-w-[10rem]">
+            <Label className="text-xs">Position</Label>
+            <Select
+              value={positionFilter}
+              onChange={(e) => setPositionFilter(e.target.value)}
+            >
+              <option value="all">All positions</option>
+              {positionOptions.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+              <option value="__none__">No position set</option>
+            </Select>
+          </div>
+          <div className="space-y-1 sm:min-w-[10rem]">
+            <Label className="text-xs">Status</Label>
+            <Select
+              value={statusFilter}
+              onChange={(e) =>
+                setStatusFilter(e.target.value as "all" | EntityStatus)
+              }
+            >
+              <option value="all">All statuses</option>
+              <option value="active">active</option>
+              <option value="inactive">inactive</option>
+              <option value="archived">archived</option>
+            </Select>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {hasActiveFilters && (
+            <Button variant="outline" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          )}
+          <Button onClick={openCreate}>+ New player</Button>
+        </div>
+      </div>
+
+      <div className="text-xs text-muted-foreground">
+        Showing{" "}
+        <span className="font-medium text-foreground">{visible.length}</span> of{" "}
+        {players.length}
       </div>
 
       <Card>

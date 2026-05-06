@@ -10,11 +10,16 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingLink } from "@/components/loading-link";
+import { SeasonFilter } from "./season-filter";
 import { formatDateTime, cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDashboard() {
+export default async function AdminDashboard({
+  searchParams,
+}: {
+  searchParams?: { season?: string };
+}) {
   const supabase = createClient();
   const nowIso = new Date().toISOString();
   const headSelect = { count: "exact" as const, head: true };
@@ -67,14 +72,21 @@ export default async function AdminDashboard() {
     .order("match_date", { ascending: false })
     .limit(8);
 
-  // ---- Season leaders (aggregated across all matches in the active season) --
-  const { data: activeSeason } = await supabase
+  // ---- Season leaders (aggregated across all matches in the chosen season) --
+  // The dropdown writes ?season=<id>; we default to the active season.
+  const { data: allSeasons } = await supabase
     .from("seasons")
-    .select("id, name")
-    .eq("is_active", true)
-    .order("start_date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .select("id, name, is_active, start_date")
+    .order("start_date", { ascending: false });
+
+  const seasons = allSeasons ?? [];
+  const activeSeason = seasons.find((s) => s.is_active) ?? null;
+
+  const requestedSeasonId = searchParams?.season ?? null;
+  const requestedSeason = requestedSeasonId
+    ? seasons.find((s) => s.id === requestedSeasonId)
+    : null;
+  const selectedSeason = requestedSeason ?? activeSeason ?? seasons[0] ?? null;
 
   type AggLeader = {
     player_id: string;
@@ -91,11 +103,11 @@ export default async function AdminDashboard() {
   };
   const aggregated: AggLeader[] = [];
 
-  if (activeSeason) {
+  if (selectedSeason) {
     const { data: seasonMatches } = await supabase
       .from("matches")
       .select("id")
-      .eq("season_id", activeSeason.id);
+      .eq("season_id", selectedSeason.id);
     const matchIds = (seasonMatches ?? []).map((m) => m.id);
 
     if (matchIds.length > 0) {
@@ -157,6 +169,11 @@ export default async function AdminDashboard() {
               <span className="text-foreground font-medium">
                 {activeSeason.name}
               </span>
+              {selectedSeason && selectedSeason.id !== activeSeason.id && (
+                <span className="ml-2 text-xs">
+                  (viewing {selectedSeason.name})
+                </span>
+              )}
             </p>
           )}
         </div>
@@ -263,24 +280,32 @@ export default async function AdminDashboard() {
 
       {/* Season leaders */}
       <section>
-        <div className="flex items-end justify-between mb-4">
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
           <div>
-            <span className="label-caps text-primary">
-              Performance
-            </span>
+            <span className="label-caps text-primary">Performance</span>
             <h2 className="font-display text-xl sm:text-2xl font-semibold mt-1">
               Season leaders
-              {activeSeason && (
+              {selectedSeason && (
                 <span className="ml-2 text-sm text-muted-foreground font-normal">
-                  · {activeSeason.name}
+                  · {selectedSeason.name}
                 </span>
               )}
             </h2>
           </div>
+          {seasons.length > 0 && (
+            <SeasonFilter
+              seasons={seasons.map((s) => ({
+                id: s.id,
+                name: s.name,
+                is_active: s.is_active,
+              }))}
+              selectedId={selectedSeason?.id ?? ""}
+            />
+          )}
         </div>
-        {!activeSeason ? (
+        {seasons.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No active season. Mark a season as active under{" "}
+            No seasons yet. Create one under{" "}
             <LoadingLink
               href="/admin/seasons"
               className="text-primary hover:underline"

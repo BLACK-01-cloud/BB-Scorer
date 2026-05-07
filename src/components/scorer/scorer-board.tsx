@@ -1973,7 +1973,7 @@ function TimeoutPanel({
       return { ...c, [side]: c[side] - 1 };
     });
     const teamName = (side === "home" ? homeTeam : awayTeam).short_name;
-    toast.push(`Time out reverted for ${teamName}.`, "info");
+    toast.push(`Time out reverted for ${teamName}.`, "default");
   }
 
   return (

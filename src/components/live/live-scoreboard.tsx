@@ -11,6 +11,10 @@ import type {
   TeamPlayer,
 } from "@/lib/types/database";
 import { formatClock } from "@/lib/utils";
+import {
+  ScoreEventOverlay,
+  type ScoreEvent,
+} from "@/components/live/score-event-overlay";
 
 export type RosterRow = TeamPlayer & {
   player: Pick<
@@ -25,21 +29,42 @@ export default function LiveScoreboard({
   awayTeam,
   roster,
   initialStats,
+  flashNotificationsEnabled = true,
 }: {
   match: Match;
   homeTeam: Team;
   awayTeam: Team;
   roster: RosterRow[];
   initialStats: MatchPlayerStat[];
+  flashNotificationsEnabled?: boolean;
 }) {
   const supabase = createClient();
   const [match, setMatch] = useState<Match>(initialMatch);
   const [stats, setStats] = useState<MatchPlayerStat[]>(initialStats);
   const [connected, setConnected] = useState(false);
+  const [scoreEvents, setScoreEvents] = useState<ScoreEvent[]>([]);
 
   const localTimerRef = useRef(initialMatch.time_remaining_seconds);
   const localShotRef = useRef(initialMatch.shot_clock_seconds);
   const [, setTick] = useState(0);
+
+  // Snapshot of last-seen per-row stats so realtime diffs detect score deltas.
+  const prevStatsRef = useRef<Map<string, MatchPlayerStat>>(new Map());
+  // Match clock snapshot kept fresh each render so realtime callbacks (which
+  // close over stale state) can stamp events with the current clock.
+  const matchClockRef = useRef("");
+  const matchPeriodRef = useRef(initialMatch.current_period);
+  // Live mirror of the flash-notifications flag so the realtime handler can
+  // skip event emission when the admin has disabled popups (avoids piling
+  // events into a queue that will never be shown).
+  const flashEnabledRef = useRef(flashNotificationsEnabled);
+  flashEnabledRef.current = flashNotificationsEnabled;
+
+  useEffect(() => {
+    const m = new Map<string, MatchPlayerStat>();
+    for (const s of initialStats) m.set(s.id, s);
+    prevStatsRef.current = m;
+  }, [initialStats]);
 
   useEffect(() => {
     if (!match.timer_running) {
@@ -99,6 +124,56 @@ export default function LiveScoreboard({
         (payload) => {
           const row = payload.new as MatchPlayerStat;
           if (!row?.id) return;
+
+          const old = prevStatsRef.current.get(row.id);
+          prevStatsRef.current.set(row.id, row);
+
+          const deltas: Array<{ pts: 1 | 2 | 3; count: number }> = [
+            { pts: 1, count: (row.pts_1 ?? 0) - (old?.pts_1 ?? 0) },
+            { pts: 2, count: (row.pts_2 ?? 0) - (old?.pts_2 ?? 0) },
+            { pts: 3, count: (row.pts_3 ?? 0) - (old?.pts_3 ?? 0) },
+          ];
+
+          const positiveDeltas = deltas.filter((d) => d.count > 0);
+          if (positiveDeltas.length > 0 && flashEnabledRef.current) {
+            const rosterRow = roster.find(
+              (r) => r.player_id === row.player_id,
+            );
+            const isHome = row.team_id === homeTeam.id;
+            const team = isHome ? homeTeam : awayTeam;
+            const accent: "home" | "away" = isHome ? "home" : "away";
+            const matchClock = matchClockRef.current;
+            const period = matchPeriodRef.current;
+            const playerName =
+              rosterRow?.player?.display_name ||
+              rosterRow?.player?.full_name ||
+              "Player";
+
+            const newEvents: ScoreEvent[] = [];
+            for (const { pts, count } of positiveDeltas) {
+              for (let i = 0; i < count; i++) {
+                newEvents.push({
+                  id: `${row.id}:pts_${pts}:${(row[`pts_${pts}` as const] ?? 0) - i}`,
+                  playerName,
+                  jerseyNumber: rosterRow?.jersey_number ?? null,
+                  photoUrl: rosterRow?.player?.photo_url ?? null,
+                  position: rosterRow?.player?.position ?? null,
+                  teamName: team.name,
+                  teamShortName: team.short_name,
+                  teamLogoUrl: team.logo_url ?? null,
+                  teamAccent: accent,
+                  pointsScored: pts,
+                  totalPoints: row.points ?? 0,
+                  matchClock: matchClock || undefined,
+                  period,
+                });
+              }
+            }
+            if (newEvents.length > 0) {
+              setScoreEvents((prev) => [...prev, ...newEvents].slice(-50));
+            }
+          }
+
           setStats((prev) => {
             const idx = prev.findIndex((x) => x.id === row.id);
             if (idx === -1) return [...prev, row];
@@ -131,6 +206,11 @@ export default function LiveScoreboard({
   const displayShot = match.shot_clock_running
     ? localShotRef.current
     : match.shot_clock_seconds;
+
+  // Keep snapshots fresh so the realtime score-event handler stamps events
+  // with the current clock + period (it closes over stale state otherwise).
+  matchClockRef.current = formatClock(displayTimer);
+  matchPeriodRef.current = match.current_period;
 
   // On-court players from both teams (for the unified performance table)
   const onCourtRows = roster
@@ -299,6 +379,10 @@ export default function LiveScoreboard({
         awayRoster={awayRoster}
         statsByPlayer={statsByPlayer}
       />
+
+      {flashNotificationsEnabled && (
+        <ScoreEventOverlay events={scoreEvents} />
+      )}
     </div>
   );
 }

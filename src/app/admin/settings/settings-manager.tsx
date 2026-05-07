@@ -40,6 +40,9 @@ export default function SettingsManager({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pickedFile, setPickedFile] = useState<File | null>(null);
   const [clearLogo, setClearLogo] = useState(false);
+  const [flashEnabled, setFlashEnabled] = useState(
+    initial?.flash_notification ?? true,
+  );
 
   function onPickFile(file: File | null) {
     if (!file) {
@@ -74,6 +77,7 @@ export default function SettingsManager({
     fd.set("site_name", siteName);
     if (clearLogo) fd.set("clear_logo", "1");
     if (pickedFile) fd.set("logo", pickedFile);
+    fd.set("flash_notification", flashEnabled ? "1" : "0");
 
     startTransition(async () => {
       const res = await updateBrandingAction(fd);
@@ -148,6 +152,47 @@ export default function SettingsManager({
                   {pickedFile ? "Cancel selection" : "Remove current logo"}
                 </Button>
               )}
+            </div>
+
+            <div className="space-y-2 pt-2 border-t border-border/40">
+              <Label className="block">Flash notification</Label>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={flashEnabled}
+                onClick={() => setFlashEnabled((v) => !v)}
+                disabled={pending}
+                className={
+                  "group flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition " +
+                  (flashEnabled
+                    ? "border-primary/40 bg-primary/5"
+                    : "border-border/60 bg-muted/30")
+                }
+              >
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground">
+                    {flashEnabled ? "Enabled" : "Disabled"}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Show the animated player score popup on the live page when
+                    a player makes a basket.
+                  </p>
+                </div>
+                <span
+                  className={
+                    "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition " +
+                    (flashEnabled ? "bg-primary" : "bg-muted-foreground/40")
+                  }
+                  aria-hidden
+                >
+                  <span
+                    className={
+                      "inline-block h-5 w-5 transform rounded-full bg-background shadow ring-1 ring-border/60 transition " +
+                      (flashEnabled ? "translate-x-5" : "translate-x-0.5")
+                    }
+                  />
+                </span>
+              </button>
             </div>
 
             <div className="pt-2">

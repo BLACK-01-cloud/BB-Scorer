@@ -118,6 +118,7 @@ export interface AppSettings {
   singleton: boolean;
   site_name: string;
   logo_url: string | null;
+  flash_notification: boolean;
   created_at: string;
   updated_at: string;
 }

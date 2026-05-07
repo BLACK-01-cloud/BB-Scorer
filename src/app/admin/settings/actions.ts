@@ -38,6 +38,7 @@ export async function updateBrandingAction(
   const siteName = String(formData.get("site_name") ?? "").trim();
   const clearLogo = formData.get("clear_logo") === "1";
   const logoFile = formData.get("logo") as File | null;
+  const flashEnabled = formData.get("flash_notification") === "1";
 
   if (siteName.length === 0 || siteName.length > 80) {
     return {
@@ -94,8 +95,13 @@ export async function updateBrandingAction(
     oldPathToRemove = pathFromPublicUrl(current?.logo_url);
   }
 
-  const update: { site_name: string; logo_url?: string | null } = {
+  const update: {
+    site_name: string;
+    logo_url?: string | null;
+    flash_notification: boolean;
+  } = {
     site_name: siteName,
+    flash_notification: flashEnabled,
   };
   if (nextLogoUrl !== undefined) update.logo_url = nextLogoUrl;
 

@@ -25,7 +25,7 @@ export default async function PublicLivePage({
 
   if (!match) notFound();
 
-  const [home, away, roster, statsRes] = await Promise.all([
+  const [home, away, roster, statsRes, settingsRes] = await Promise.all([
     supabase.from("teams").select("*").eq("id", match.home_team_id).single(),
     supabase.from("teams").select("*").eq("id", match.away_team_id).single(),
     supabase
@@ -37,7 +37,14 @@ export default async function PublicLivePage({
       .in("team_id", [match.home_team_id, match.away_team_id])
       .eq("active", true),
     supabase.from("match_player_stats").select("*").eq("match_id", match.id),
+    supabase
+      .from("app_settings")
+      .select("flash_notification")
+      .limit(1)
+      .maybeSingle(),
   ]);
+
+  const flashEnabled = settingsRes.data?.flash_notification ?? true;
 
   return (
     <main className="relative min-h-screen overflow-x-hidden">
@@ -66,6 +73,7 @@ export default async function PublicLivePage({
             awayTeam={away.data as Team}
             roster={(roster.data ?? []) as unknown as RosterRow[]}
             initialStats={(statsRes.data ?? []) as unknown as MatchPlayerStat[]}
+            flashNotificationsEnabled={flashEnabled}
           />
         </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Star } from "lucide-react";
 
 export type ScoreEvent = {
   id: string;
@@ -16,30 +17,19 @@ export type ScoreEvent = {
   totalPoints: number;
   matchClock?: string;
   period?: number;
+  homeScore: number;
+  awayScore: number;
+  homeShortName: string;
+  awayShortName: string;
 };
 
 const VISIBLE_MS = 3500;
 const LEAVE_MS = 320;
 
-const SHOT_INFO: Record<
-  1 | 2 | 3,
-  { chant: string; label: string; sublabel: string }
-> = {
-  1: {
-    chant: "At the Line",
-    label: "Free Throw",
-    sublabel: "Charity Stripe",
-  },
-  2: {
-    chant: "Scores!",
-    label: "Bucket",
-    sublabel: "Field Goal",
-  },
-  3: {
-    chant: "Bang! From Downtown",
-    label: "Triple",
-    sublabel: "Beyond the Arc",
-  },
+const ACTION_LABEL: Record<1 | 2 | 3, string> = {
+  1: "1PT MADE",
+  2: "2PT MADE",
+  3: "3PT MADE",
 };
 
 export function ScoreEventOverlay({ events }: { events: ScoreEvent[] }) {
@@ -92,155 +82,200 @@ export function ScoreEventOverlay({ events }: { events: ScoreEvent[] }) {
 
   if (!current) return null;
 
-  const accentVar =
-    current.teamAccent === "home"
-      ? "var(--primary)"
-      : "210 90% 60%"; /* away = blue */
-
-  const accentTextClass =
-    current.teamAccent === "home" ? "text-primary" : "text-sky-400";
-  const accentRingClass =
-    current.teamAccent === "home"
-      ? "ring-primary/40 bg-primary/10"
-      : "ring-sky-400/40 bg-sky-400/10";
-  const accentBarClass =
-    current.teamAccent === "home"
-      ? "bg-gradient-to-r from-primary/70 via-primary to-primary/70"
-      : "bg-gradient-to-r from-sky-400/70 via-sky-400 to-sky-400/70";
+  const isHomeScorer = current.teamAccent === "home";
+  const accentTextClass = isHomeScorer ? "text-primary" : "text-sky-400";
+  const accentBorderClass = isHomeScorer
+    ? "border-primary/55"
+    : "border-sky-400/55";
+  const accentBgClass = isHomeScorer ? "bg-primary" : "bg-sky-500";
+  const accentFgClass = isHomeScorer
+    ? "text-primary-foreground"
+    : "text-white";
 
   const initial = (current.playerName.trim()[0] ?? "?").toUpperCase();
+  const periodLabel =
+    typeof current.period === "number" ? `Q${current.period}` : null;
+
+  const homeScoreClass = isHomeScorer
+    ? accentTextClass
+    : "text-foreground/70";
+  const awayScoreClass = !isHomeScorer
+    ? accentTextClass
+    : "text-foreground/70";
+  const homeNameClass = isHomeScorer
+    ? accentTextClass
+    : "text-muted-foreground";
+  const awayNameClass = !isHomeScorer
+    ? accentTextClass
+    : "text-muted-foreground";
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-24 md:bottom-12 z-[90] flex justify-center px-4">
       <div
         role="status"
         aria-live="polite"
-        style={
-          {
-            ["--accent-glow" as string]: accentVar,
-          } as React.CSSProperties
-        }
         className={
-          "pointer-events-auto relative w-[min(calc(100vw-2rem),32rem)] overflow-hidden rounded-2xl border border-border/50 bg-card/95 shadow-2xl backdrop-blur-xl " +
+          "pointer-events-auto relative w-[min(calc(100vw-2rem),34rem)] overflow-hidden rounded-2xl border border-border/40 bg-background/85 backdrop-blur-xl " +
+          "score-popup-glow score-popup-sweep " +
           (animState === "in" ? "score-popup-enter" : "score-popup-leave")
         }
       >
-        <div className={"h-1 w-full " + accentBarClass} />
-
-        <div className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
-          {/* Player avatar */}
-          <div className="relative shrink-0">
-            <div
-              className={
-                "h-14 w-14 sm:h-16 sm:w-16 overflow-hidden rounded-full ring-2 " +
-                accentRingClass
-              }
-            >
-              {current.photoUrl ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={current.photoUrl}
-                  alt={current.playerName}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div
-                  className={
-                    "grid h-full w-full place-items-center font-display text-xl font-black uppercase " +
-                    accentTextClass
-                  }
-                >
-                  {initial}
-                </div>
-              )}
-            </div>
-            {current.jerseyNumber && (
-              <span className="absolute -bottom-1 -right-1 grid h-6 min-w-[1.5rem] place-items-center rounded-full border-2 border-card bg-foreground px-1 font-mono text-[11px] font-black leading-none text-background">
-                {current.jerseyNumber}
-              </span>
-            )}
-          </div>
-
-          {/* Points + name + action */}
-          <div className="min-w-0 flex-1">
-            <div className={"label-caps " + accentTextClass}>
-              {SHOT_INFO[current.pointsScored].chant}
-            </div>
-            <div className="mt-0.5 flex items-baseline gap-2">
-              <span
+        <div className="relative z-10 flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+        {/* Left: Avatar + team badge */}
+        <div className="relative shrink-0">
+          <div
+            className={
+              "h-14 w-14 sm:h-16 sm:w-16 overflow-hidden rounded-full border-2 bg-muted/30 " +
+              accentBorderClass
+            }
+          >
+            {current.photoUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={current.photoUrl}
+                alt={current.playerName}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div
                 className={
-                  "score-points-pop font-display text-3xl sm:text-4xl font-black leading-none scoreboard-digit " +
+                  "grid h-full w-full place-items-center font-display text-xl font-black " +
                   accentTextClass
                 }
               >
-                +{current.pointsScored}
-              </span>
-              <span className="font-display text-sm sm:text-base font-bold uppercase tracking-tight text-foreground">
-                {SHOT_INFO[current.pointsScored].label}
-              </span>
-              <span className="hidden sm:inline text-[10px] uppercase tracking-widest text-muted-foreground">
-                · {SHOT_INFO[current.pointsScored].sublabel}
-              </span>
-            </div>
-            <div className="mt-1 truncate font-display text-base sm:text-lg font-bold uppercase tracking-tight text-foreground">
-              {current.playerName}
-            </div>
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
-              {current.position && (
-                <span className="font-mono">{current.position}</span>
-              )}
-              {typeof current.period === "number" && (
-                <>
-                  {current.position && <span aria-hidden>·</span>}
-                  <span className="font-mono">Q{current.period}</span>
-                </>
-              )}
-              {current.matchClock && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span className="font-mono scoreboard-digit">
-                    {current.matchClock}
-                  </span>
-                </>
-              )}
-              <span aria-hidden>·</span>
-              <span className="font-mono">
-                {current.totalPoints} PTS ON THE NIGHT
-              </span>
-            </div>
+                {initial}
+              </div>
+            )}
           </div>
 
-          {/* Team logo + short name */}
-          <div className="flex shrink-0 flex-col items-center gap-1">
-            <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-md border border-border/50 bg-background/60">
-              {current.teamLogoUrl ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={current.teamLogoUrl}
-                  alt={current.teamName}
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                <span
-                  className={
-                    "font-display text-xs font-black uppercase " +
-                    accentTextClass
-                  }
-                >
-                  {current.teamShortName.slice(0, 3)}
-                </span>
-              )}
-            </div>
+          <div
+            className={
+              "absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center overflow-hidden rounded-full border bg-card shadow-lg " +
+              accentBorderClass
+            }
+            aria-hidden
+          >
+            {current.teamLogoUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={current.teamLogoUrl}
+                alt=""
+                className="h-full w-full object-contain p-0.5"
+              />
+            ) : (
+              <Star
+                className={"h-4 w-4 fill-current " + accentTextClass}
+                aria-hidden
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Center: Event info */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
             <span
               className={
-                "font-display text-[10px] font-bold uppercase tracking-widest " +
+                "font-display text-sm sm:text-base font-bold uppercase tracking-wider " +
                 accentTextClass
               }
             >
+              {ACTION_LABEL[current.pointsScored]}
+            </span>
+            <span
+              className="h-2 w-2 rounded-full bg-red-500 animate-pulse"
+              aria-hidden
+            />
+          </div>
+
+          <div className="mt-0.5 truncate font-display text-base sm:text-lg font-bold text-foreground scoreboard-digit">
+            {current.jerseyNumber && (
+              <span className="font-mono text-muted-foreground/90">
+                #{current.jerseyNumber}{" "}
+              </span>
+            )}
+            {current.playerName}
+          </div>
+
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+            <span className="font-display font-bold">
               {current.teamShortName}
+            </span>
+            {periodLabel && (
+              <>
+                <span
+                  className="h-1 w-1 rounded-full bg-muted-foreground/60"
+                  aria-hidden
+                />
+                <span className="font-mono">{periodLabel}</span>
+              </>
+            )}
+            {current.matchClock && (
+              <>
+                <span
+                  className="h-1 w-1 rounded-full bg-muted-foreground/60"
+                  aria-hidden
+                />
+                <span className="font-mono scoreboard-digit">
+                  {current.matchClock}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Right: +N pill + scoreboard line */}
+        <div className="flex shrink-0 flex-col items-end gap-1.5 pr-1">
+          <div
+            className={
+              "score-points-pop rounded-full px-2.5 py-0.5 font-display text-xs font-black shadow-md " +
+              accentBgClass +
+              " " +
+              accentFgClass
+            }
+          >
+            +{current.pointsScored}
+          </div>
+
+          <div className="flex items-baseline gap-1.5">
+            <span
+              className={
+                "font-display text-[10px] font-bold uppercase tracking-widest " +
+                homeNameClass
+              }
+            >
+              {current.homeShortName}
+            </span>
+            <span
+              className={
+                "font-display text-lg sm:text-xl font-bold scoreboard-digit " +
+                homeScoreClass
+              }
+            >
+              {current.homeScore}
+            </span>
+            <span className="text-muted-foreground/40" aria-hidden>
+              –
+            </span>
+            <span
+              className={
+                "font-display text-lg sm:text-xl font-bold scoreboard-digit " +
+                awayScoreClass
+              }
+            >
+              {current.awayScore}
+            </span>
+            <span
+              className={
+                "font-display text-[10px] font-bold uppercase tracking-widest " +
+                awayNameClass
+              }
+            >
+              {current.awayShortName}
             </span>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

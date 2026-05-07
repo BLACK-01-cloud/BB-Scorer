@@ -43,6 +43,20 @@ export default function LiveScoreboard({
   const [stats, setStats] = useState<MatchPlayerStat[]>(initialStats);
   const [connected, setConnected] = useState(false);
   const [scoreEvents, setScoreEvents] = useState<ScoreEvent[]>([]);
+  const [flashEnabled, setFlashEnabled] = useState(flashNotificationsEnabled);
+
+  // If the parent re-renders with a different prop value (server fetch on
+  // navigation), honor it. Realtime updates from the channel below will
+  // overwrite this anyway during a session.
+  useEffect(() => {
+    setFlashEnabled(flashNotificationsEnabled);
+  }, [flashNotificationsEnabled]);
+
+  // Drop any queued popups when the admin disables the flag, so a later
+  // re-enable doesn't replay stale events.
+  useEffect(() => {
+    if (!flashEnabled) setScoreEvents([]);
+  }, [flashEnabled]);
 
   const localTimerRef = useRef(initialMatch.time_remaining_seconds);
   const localShotRef = useRef(initialMatch.shot_clock_seconds);
@@ -54,11 +68,22 @@ export default function LiveScoreboard({
   // close over stale state) can stamp events with the current clock.
   const matchClockRef = useRef("");
   const matchPeriodRef = useRef(initialMatch.current_period);
-  // Live mirror of the flash-notifications flag so the realtime handler can
-  // skip event emission when the admin has disabled popups (avoids piling
-  // events into a queue that will never be shown).
-  const flashEnabledRef = useRef(flashNotificationsEnabled);
-  flashEnabledRef.current = flashNotificationsEnabled;
+  // Live mirror of the flash-notifications flag so the realtime match-stats
+  // handler (which closes over the initial state) can read the latest value
+  // and skip event emission when the admin has disabled popups.
+  const flashEnabledRef = useRef(flashEnabled);
+  flashEnabledRef.current = flashEnabled;
+  // Snapshot the live home/away scores so each popup can render the running
+  // scoreboard (the matches realtime channel is separate and may lag the
+  // match_player_stats update by a tick — we accumulate locally instead).
+  const matchScoreRef = useRef({
+    home: initialMatch.home_score,
+    away: initialMatch.away_score,
+  });
+  matchScoreRef.current = {
+    home: match.home_score,
+    away: match.away_score,
+  };
 
   useEffect(() => {
     const m = new Map<string, MatchPlayerStat>();
@@ -149,9 +174,16 @@ export default function LiveScoreboard({
               rosterRow?.player?.full_name ||
               "Player";
 
+            // Accumulate the running scoreboard across multiple deltas in the
+            // same row update (e.g., back-to-back free throws).
+            let homeAcc = matchScoreRef.current.home;
+            let awayAcc = matchScoreRef.current.away;
+
             const newEvents: ScoreEvent[] = [];
             for (const { pts, count } of positiveDeltas) {
               for (let i = 0; i < count; i++) {
+                if (isHome) homeAcc += pts;
+                else awayAcc += pts;
                 newEvents.push({
                   id: `${row.id}:pts_${pts}:${(row[`pts_${pts}` as const] ?? 0) - i}`,
                   playerName,
@@ -166,6 +198,10 @@ export default function LiveScoreboard({
                   totalPoints: row.points ?? 0,
                   matchClock: matchClock || undefined,
                   period,
+                  homeScore: homeAcc,
+                  awayScore: awayAcc,
+                  homeShortName: homeTeam.short_name,
+                  awayShortName: awayTeam.short_name,
                 });
               }
             }
@@ -190,6 +226,63 @@ export default function LiveScoreboard({
       supabase.removeChannel(channel);
     };
   }, [supabase, match.id]);
+
+  // Subscribe to app_settings updates so admin changes (e.g., toggling the
+  // flash-notification flag) reflect on every open live page without a refresh.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function refetchFlag() {
+      const { data, error } = await supabase
+        .from("app_settings")
+        .select("flash_notification")
+        .limit(1)
+        .maybeSingle();
+      if (cancelled || error) return;
+      if (data && typeof data.flash_notification === "boolean") {
+        setFlashEnabled(data.flash_notification);
+      }
+    }
+
+    const channel = supabase
+      .channel(`app-settings-live`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "app_settings",
+        },
+        (payload) => {
+          const next = payload.new as Partial<{
+            flash_notification: boolean;
+          }> | null;
+          if (next && typeof next.flash_notification === "boolean") {
+            setFlashEnabled(next.flash_notification);
+          }
+        },
+      )
+      .subscribe();
+
+    // Fallbacks for when realtime isn't reaching us (e.g., the publication
+    // migration hasn't been applied yet, or the websocket dropped):
+    //  - re-fetch when the tab regains focus
+    //  - re-fetch on a slow background poll
+    function onFocus() {
+      refetchFlag();
+    }
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    const pollHandle = window.setInterval(refetchFlag, 15000);
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+      window.clearInterval(pollHandle);
+    };
+  }, [supabase]);
 
   const homeRoster = roster.filter((r) => r.team_id === homeTeam.id);
   const awayRoster = roster.filter((r) => r.team_id === awayTeam.id);
@@ -380,9 +473,7 @@ export default function LiveScoreboard({
         statsByPlayer={statsByPlayer}
       />
 
-      {flashNotificationsEnabled && (
-        <ScoreEventOverlay events={scoreEvents} />
-      )}
+      {flashEnabled && <ScoreEventOverlay events={scoreEvents} />}
     </div>
   );
 }

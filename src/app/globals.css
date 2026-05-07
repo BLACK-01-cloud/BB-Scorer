@@ -215,22 +215,12 @@
   }
 }
 
-@keyframes score-popup-flash {
-  0% {
-    box-shadow:
-      0 0 0 0 hsl(var(--accent-glow, var(--primary)) / 0.0),
-      0 12px 40px -8px rgba(0, 0, 0, 0.4);
-  }
-  35% {
-    box-shadow:
-      0 0 32px 6px hsl(var(--accent-glow, var(--primary)) / 0.55),
-      0 12px 40px -8px rgba(0, 0, 0, 0.5);
-  }
-  100% {
-    box-shadow:
-      0 0 0 0 hsl(var(--accent-glow, var(--primary)) / 0.0),
-      0 12px 40px -8px rgba(0, 0, 0, 0.45);
-  }
+@keyframes score-popup-sweep {
+  0%   { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
+  20%  { opacity: 0.4; }
+  50%  { opacity: 0.4; }
+  80%  { opacity: 0; }
+  100% { transform: translateX(220%) skewX(-15deg); opacity: 0; }
 }
 
 @keyframes score-points-pop {
@@ -240,9 +230,7 @@
 }
 
 .score-popup-enter {
-  animation:
-    score-popup-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both,
-    score-popup-flash 1100ms ease-out 80ms;
+  animation: score-popup-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .score-popup-leave {
@@ -251,4 +239,31 @@
 
 .score-points-pop {
   animation: score-points-pop 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Persistent orange/copper halo around the live popup. */
+.score-popup-glow {
+  box-shadow:
+    0 0 25px -5px hsl(var(--primary) / 0.45),
+    0 0 15px -5px hsl(var(--primary) / 0.30),
+    0 12px 40px -8px rgba(0, 0, 0, 0.55);
+}
+
+/* Diagonal light streak that sweeps across the card every few seconds. */
+.score-popup-sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    hsl(var(--primary) / 0.22),
+    transparent
+  );
+  transform: skewX(-15deg);
+  animation: score-popup-sweep 4s infinite ease-in-out;
+  pointer-events: none;
+  z-index: 0;
 }

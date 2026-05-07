@@ -409,14 +409,23 @@ export default function PlayersManager({
               </div>
               <div className="space-y-2">
                 <Label>Position</Label>
-                <Input
+                <Select
                   value={form.position}
                   onChange={(e) =>
                     setForm({ ...form, position: e.target.value })
                   }
-                  placeholder="PG, SG, SF, PF, C"
-                  maxLength={32}
-                />
+                >
+                  <option value="">— Select position —</option>
+                  <option value="PG">PG · Point Guard</option>
+                  <option value="SG">SG · Shooting Guard</option>
+                  <option value="SF">SF · Small Forward</option>
+                  <option value="PF">PF · Power Forward</option>
+                  <option value="C">C · Center</option>
+                  {form.position &&
+                    !["PG", "SG", "SF", "PF", "C"].includes(form.position) && (
+                      <option value={form.position}>{form.position}</option>
+                    )}
+                </Select>
               </div>
             </div>
             <div className="space-y-2">

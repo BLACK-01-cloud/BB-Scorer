@@ -137,3 +137,49 @@
   font-style: italic;
   font-weight: 900;
 }
+
+/* ===== Toast animations ===== */
+
+@keyframes toast-in {
+  0% {
+    transform: translateX(120%) scale(0.96);
+    opacity: 0;
+  }
+  60% {
+    transform: translateX(-4px) scale(1.01);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-out {
+  0% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(120%) scale(0.96);
+    opacity: 0;
+  }
+}
+
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+.toast-enter {
+  animation: toast-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.toast-leave {
+  animation: toast-out 240ms ease-in both;
+}
+
+.toast-progress-bar {
+  transform-origin: left center;
+  animation: toast-progress linear forwards;
+}

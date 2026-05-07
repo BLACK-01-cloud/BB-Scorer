@@ -21,7 +21,6 @@ export default async function UsersPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Access · Staff"
         title="Users"
         description="Manage admins and scorers. Login uses username; Supabase Auth still stores the email under the hood."
       />
